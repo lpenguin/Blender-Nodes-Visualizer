@@ -44,8 +44,9 @@ function topoSort(nodes: NodeData[], connections: ConnectionData[]): NodeData[] 
 // ─── Code Generation ──────────────────────────────────────────────────────────
 
 function sanitizeId(id: string): string {
-  // Make a safe JS variable name
-  return id.replace(/[^a-zA-Z0-9_$]/g, '_');
+  // Make a safe JS variable name; prefix with underscore if it starts with a digit
+  const safe = id.replace(/[^a-zA-Z0-9_$]/g, '_');
+  return /^[0-9]/.test(safe) ? `_${safe}` : safe;
 }
 
 function formatDefaultValue(type: string, value: any): string {
@@ -204,11 +205,13 @@ export function exportTSL(schema: GraphSchema): string {
         uniformExpr = `uniform(${typeof initVal === 'number' ? initVal.toFixed(4) : '0.0'})`;
       } else if (node.type === 'tsl:UniformVec3') {
         imports.add('vec3');
-        const v = initVal ?? [0, 0, 0];
+        const raw = Array.isArray(initVal) ? initVal : [0, 0, 0];
+        const v = [raw[0] ?? 0, raw[1] ?? 0, raw[2] ?? 0];
         uniformExpr = `uniform(new THREE.Vector3(${v[0]}, ${v[1]}, ${v[2]}))`;
       } else {
         imports.add('color');
-        const v = initVal ?? [1, 1, 1];
+        const raw = Array.isArray(initVal) ? initVal : [1, 1, 1];
+        const v = [raw[0] ?? 1, raw[1] ?? 1, raw[2] ?? 1];
         uniformExpr = `uniform(new THREE.Color(${v[0]}, ${v[1]}, ${v[2]}))`;
       }
       const varName = varBase;

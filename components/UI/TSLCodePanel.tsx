@@ -16,7 +16,15 @@ export const TSLCodePanel: React.FC<TSLCodePanelProps> = ({ isOpen, code, onClos
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // fallback: select all text
+      // Clipboard API unavailable — select the code text as fallback
+      const pre = document.querySelector('.tsl-code-content');
+      if (pre && window.getSelection) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(pre);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
     }
   };
 
@@ -55,7 +63,7 @@ export const TSLCodePanel: React.FC<TSLCodePanelProps> = ({ isOpen, code, onClos
 
       {/* Code */}
       <div className="flex-1 overflow-auto bg-[#1a1a2e]">
-        <pre className="p-4 text-xs font-mono text-neutral-300 whitespace-pre leading-relaxed">
+        <pre className="tsl-code-content p-4 text-xs font-mono text-neutral-300 whitespace-pre leading-relaxed">
           <code>{code}</code>
         </pre>
       </div>

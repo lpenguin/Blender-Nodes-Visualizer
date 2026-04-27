@@ -99,18 +99,23 @@ export const NodePicker: React.FC<NodePickerProps> = ({ isOpen, onClose, onAddNo
               <button
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50 transition-colors border-b border-neutral-800/50"
                 onClick={() => toggleCategory(cat)}
+                aria-expanded={isExpanded}
+                aria-controls={`cat-${cat}`}
               >
-                <span className="text-base leading-none">{CATEGORY_ICONS[cat] ?? '•'}</span>
+                <span className="text-base leading-none" aria-hidden="true">{CATEGORY_ICONS[cat] ?? '•'}</span>
                 <span className="flex-1 text-left">{cat}</span>
                 <span className="text-neutral-600 text-[10px]">{nodes.length}</span>
                 <ChevronRight
                   size={12}
                   className={`text-neutral-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                  aria-hidden="true"
                 />
               </button>
 
               {/* Node items */}
-              {isExpanded && nodes.map(node => (
+              {isExpanded && (
+                <div id={`cat-${cat}`}>
+                  {nodes.map(node => (
                 <button
                   key={node.type}
                   className="w-full flex flex-col gap-0.5 px-4 py-2 text-left hover:bg-neutral-800 transition-colors group border-b border-neutral-800/30"
@@ -133,6 +138,8 @@ export const NodePicker: React.FC<NodePickerProps> = ({ isOpen, onClose, onAddNo
                   </p>
                 </button>
               ))}
+                </div>
+              )}
             </div>
           );
         })}

@@ -63,10 +63,14 @@ function App() {
     const existingCount = newSchema.nodes.length;
     const position = { x: 100 + (existingCount % 5) * 230, y: 80 + Math.floor(existingCount / 5) * 180 };
 
-    // Build a unique id
+    // Build a unique id — check for actual collisions
     const baseId = def.type.replace('tsl:', '').toLowerCase();
-    const existing = newSchema.nodes.filter(n => n.id.startsWith(baseId));
-    const id = existing.length > 0 ? `${baseId}_${existing.length + 1}` : baseId;
+    const takenIds = new Set(newSchema.nodes.map(n => n.id));
+    let id = baseId;
+    let counter = 2;
+    while (takenIds.has(id)) {
+      id = `${baseId}_${counter++}`;
+    }
 
     const newNode: NodeData = {
       id,
