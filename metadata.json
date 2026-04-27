@@ -1,0 +1,6 @@
+{
+  "name": "Blender Node Visualizer",
+  "description": "A read-only visualization tool for AI-generated Blender shader node graphs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
