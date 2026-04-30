@@ -244,6 +244,23 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     };
   };
 
+  const handleInputValueChange = (nodeId: string, portId: string, value: any) => {
+    const updatedNodes = schemaRef.current.nodes.map((node) => {
+      if (node.id !== nodeId) return node;
+
+      return {
+        ...node,
+        inputs: node.inputs?.map((port) => (
+          port.id === portId ? { ...port, value } : port
+        )),
+      };
+    });
+
+    const updatedSchema = { ...schemaRef.current, nodes: updatedNodes };
+    if (onNodesChange) onNodesChange(updatedNodes);
+    if (onInteractionEnd) onInteractionEnd(updatedSchema);
+  };
+
   // --- Handlers ---
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -734,6 +751,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
                 <NodeWidget 
                     key={node.id} 
                     data={node} 
+                    onInputValueChange={handleInputValueChange}
                     isSelected={selectedNodeIds.has(node.id)}
                     activePortId={connectionDrag ? (connectionDrag.detachedConnection ? connectionDrag.anchorPortId : connectionDrag.startedFromPortId) : null}
                     hoveredPortId={connectionDrag?.hoveredPortId ?? null}

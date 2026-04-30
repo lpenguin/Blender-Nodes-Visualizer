@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NodeData, NodePort, NodeProperty } from '../../types';
-import { getPortColor, isValidVector3, isValidColor, isValidGradient, generateGradientCSS, rgbToHex, isValidRotation } from '../../utils';
+import { getPortColor, isValidVector3, isValidColor, isValidGradient, generateGradientCSS, rgbToHex, isValidRotation, hexToRgb } from '../../utils';
 import { AlertTriangle, HelpCircle } from 'lucide-react';
 import { useToast } from '../UI/Toast';
 import { TSL_NODE_BY_TYPE } from '../../tslNodes';
 
 interface NodeWidgetProps {
   data: NodeData;
+  onInputValueChange?: (nodeId: string, portId: string, value: any) => void;
   isSelected?: boolean;
   activePortId?: string | null;
   hoveredPortId?: string | null;
@@ -35,6 +36,239 @@ const PortDot: React.FC<{ type: string; isConnected?: boolean; highlightState?: 
 };
 
 // --- Widgets ---
+
+const FLOAT_PATTERN = /^[+-]?(?:\d+\.?\d*|\.\d+)$/;
+const FLOAT_PARTIAL_PATTERN = /^[+-]?(?:\d+\.?\d*|\.\d*)?$/;
+const INT_PATTERN = /^[+-]?\d+$/;
+const INT_PARTIAL_PATTERN = /^[+-]?\d*$/;
+const DRAG_PIXELS_PER_STEP = 6.5;
+const DRAG_ACTIVATION_DISTANCE = 4;
+
+const normalizeNumericValue = (value: any, integer: boolean) => {
+    const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value ?? ''));
+    if (!Number.isFinite(parsed)) return 0;
+    return integer ? Math.round(parsed) : Number(parsed.toFixed(4));
+};
+
+const formatNumericValue = (value: number, integer: boolean) => {
+    if (integer) return String(Math.round(value));
+    const normalized = Number(value.toFixed(4));
+    return Object.is(normalized, -0) ? '0' : normalized.toString();
+};
+
+const roundDraggedFloat = (value: number) => Number(value.toFixed(4));
+
+const NumericValueEditor: React.FC<{
+    label?: string;
+    value: any;
+    onChange: (value: number) => void;
+    integer?: boolean;
+}> = ({ label, value, onChange, integer = false }) => {
+    const normalizedValue = normalizeNumericValue(value, integer);
+    const [isEditing, setIsEditing] = useState(false);
+    const [draftValue, setDraftValue] = useState(formatNumericValue(normalizedValue, integer));
+    const inputRef = useRef<HTMLInputElement>(null);
+    const dragStateRef = useRef<{ pointerId: number; startX: number; startValue: number; moved: boolean } | null>(null);
+    const latestValueRef = useRef(normalizedValue);
+    const onChangeRef = useRef(onChange);
+
+    useEffect(() => {
+        latestValueRef.current = normalizedValue;
+        if (!isEditing) {
+            setDraftValue(formatNumericValue(normalizedValue, integer));
+        }
+    }, [normalizedValue, integer, isEditing]);
+
+    useEffect(() => {
+        onChangeRef.current = onChange;
+    }, [onChange]);
+
+    useEffect(() => {
+        if (!isEditing || !inputRef.current) return;
+        inputRef.current.focus();
+        inputRef.current.select();
+    }, [isEditing]);
+
+    useEffect(() => {
+        const handlePointerMove = (event: PointerEvent) => {
+            const dragState = dragStateRef.current;
+            if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+            const dx = event.clientX - dragState.startX;
+            if (Math.abs(dx) >= DRAG_ACTIVATION_DISTANCE) {
+                dragState.moved = true;
+                document.body.style.cursor = 'ew-resize';
+            }
+
+            const stepCount = Math.trunc(dx / DRAG_PIXELS_PER_STEP);
+            const nextValue = integer
+                ? Math.round(dragState.startValue + (stepCount * 1))
+                : roundDraggedFloat(dragState.startValue + (stepCount * (event.shiftKey ? 0.01 : 0.1)));
+
+            if (nextValue !== latestValueRef.current) {
+                onChangeRef.current(nextValue);
+            }
+        };
+
+        const handlePointerUp = (event: PointerEvent) => {
+            const dragState = dragStateRef.current;
+            if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+            const shouldEdit = !dragState.moved;
+            dragStateRef.current = null;
+            document.body.style.cursor = '';
+
+            if (shouldEdit) {
+                setIsEditing(true);
+            }
+        };
+
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+
+        return () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+            document.body.style.cursor = '';
+        };
+    }, [integer]);
+
+    const commitDraftValue = () => {
+        const trimmed = draftValue.trim();
+        const isValid = integer ? INT_PATTERN.test(trimmed) : FLOAT_PATTERN.test(trimmed);
+
+        if (!trimmed || !isValid) {
+            setDraftValue(formatNumericValue(normalizedValue, integer));
+            setIsEditing(false);
+            return;
+        }
+
+        const parsed = integer ? Number.parseInt(trimmed, 10) : Number.parseFloat(trimmed);
+        if (!Number.isFinite(parsed)) {
+            setDraftValue(formatNumericValue(normalizedValue, integer));
+            setIsEditing(false);
+            return;
+        }
+
+        const nextValue = integer ? Math.round(parsed) : roundDraggedFloat(parsed);
+        onChange(nextValue);
+        setDraftValue(formatNumericValue(nextValue, integer));
+        setIsEditing(false);
+    };
+
+    const nudgeValue = (direction: -1 | 1) => {
+        const nextValue = integer
+            ? Math.round(normalizedValue + (direction * 1))
+            : roundDraggedFloat(normalizedValue + (direction * 0.1));
+        onChange(nextValue);
+    };
+
+    return (
+        <div className="flex h-7 w-full items-stretch overflow-hidden rounded bg-neutral-600/95 shadow-sm pointer-events-auto" onPointerDown={(event) => event.stopPropagation()}>
+            <button
+                type="button"
+                className="flex h-full w-6 shrink-0 items-center justify-center rounded-l rounded-r-none bg-neutral-700 text-[11px] text-neutral-200 transition-colors hover:bg-neutral-800"
+                onClick={() => nudgeValue(-1)}
+            >
+                {'<'}
+            </button>
+
+            {isEditing ? (
+                <input
+                    ref={inputRef}
+                    value={draftValue}
+                    inputMode={integer ? 'numeric' : 'decimal'}
+                    className="h-full min-w-0 flex-1 bg-transparent px-2 text-center font-mono text-[11px] text-neutral-100 outline-none"
+                    onChange={(event) => {
+                        const nextDraft = event.currentTarget.value;
+                        const partialPattern = integer ? INT_PARTIAL_PATTERN : FLOAT_PARTIAL_PATTERN;
+                        if (partialPattern.test(nextDraft)) {
+                            setDraftValue(nextDraft);
+                        }
+                    }}
+                    onBlur={commitDraftValue}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                            commitDraftValue();
+                        }
+                        if (event.key === 'Escape') {
+                            setDraftValue(formatNumericValue(normalizedValue, integer));
+                            setIsEditing(false);
+                        }
+                    }}
+                    onPointerDown={(event) => event.stopPropagation()}
+                />
+            ) : (
+                <button
+                    type="button"
+                    className="flex h-full min-w-0 flex-1 cursor-ew-resize items-center gap-2 bg-transparent px-2 text-[11px] text-neutral-100"
+                    onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        dragStateRef.current = {
+                            pointerId: event.pointerId,
+                            startX: event.clientX,
+                            startValue: latestValueRef.current,
+                            moved: false,
+                        };
+                    }}
+                >
+                    <span className="min-w-0 flex-1 truncate text-left text-neutral-100">{label}</span>
+                    <span className="shrink-0 text-right font-mono text-neutral-100">{formatNumericValue(normalizedValue, integer)}</span>
+                </button>
+            )}
+
+            <button
+                type="button"
+                className="flex h-full w-6 shrink-0 items-center justify-center rounded-r rounded-l-none bg-neutral-700 text-[11px] text-neutral-200 transition-colors hover:bg-neutral-800"
+                onClick={() => nudgeValue(1)}
+            >
+                {'>'}
+            </button>
+        </div>
+    );
+};
+
+const ColorValueEditor: React.FC<{
+    value: any;
+    onChange: (value: number[]) => void;
+}> = ({ value, onChange }) => {
+    const normalizedValue = isValidColor(value) ? value : [0, 0, 0];
+    const currentHex = rgbToHex(normalizedValue);
+    const [previewHex, setPreviewHex] = useState(currentHex);
+
+    useEffect(() => {
+        setPreviewHex(currentHex);
+    }, [currentHex]);
+
+    const updateColor = (hex: string) => {
+        setPreviewHex(hex);
+        const nextColor = hexToRgb(hex, typeof normalizedValue[3] === 'number' ? normalizedValue[3] : undefined);
+        if (nextColor) {
+            onChange(nextColor);
+        }
+    };
+
+    return (
+        <div className="relative h-6 w-[72px] overflow-hidden rounded bg-neutral-600/95 shadow-sm pointer-events-auto" onPointerDown={(event) => event.stopPropagation()}>
+            <div className="pointer-events-none h-full w-full rounded" style={{ backgroundColor: previewHex }} />
+            <input
+                type="color"
+                value={previewHex}
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                onInput={(event) => updateColor(event.currentTarget.value)}
+                onChange={(event) => updateColor(event.currentTarget.value)}
+                onPointerDown={(event) => event.stopPropagation()}
+            />
+        </div>
+    );
+};
+
+const isExpandedInputWidget = (type: string) => type === 'gradient' || type === 'float_curve';
+
+const isEmbeddedNumericInput = (type: string) => type === 'float' || type === 'int';
+
+const isInlineColorInput = (type: string) => type === 'color';
 
 const FloatCurveDisplay: React.FC<{ value: any }> = ({ value }) => {
     const { showToast } = useToast();
@@ -191,7 +425,7 @@ const GradientDisplay: React.FC<{ value: any }> = ({ value }) => {
   );
 };
 
-const ValueWidget: React.FC<{ type: string; value: any }> = ({ type, value }) => {
+const ValueWidget: React.FC<{ type: string; value: any; label?: string; onChange?: (value: any) => void }> = ({ type, value, label, onChange }) => {
     const { showToast } = useToast();
     const copy = (val: string) => {
         navigator.clipboard.writeText(val);
@@ -199,15 +433,31 @@ const ValueWidget: React.FC<{ type: string; value: any }> = ({ type, value }) =>
     }
 
     if (type === 'float') {
-        const num = typeof value === 'number' ? value : parseFloat(value);
+        if (onChange) {
+            return <NumericValueEditor label={label} value={value} onChange={onChange} />;
+        }
+        const num = normalizeNumericValue(value, false);
         if (isNaN(num)) return <span className="text-red-500 text-[10px]">NaN</span>;
         return (
             <div 
-                className="bg-neutral-700 px-2 py-0.5 rounded text-neutral-300 text-xs font-mono min-w-[40px] text-center border border-transparent hover:border-neutral-500 cursor-pointer ml-auto"
+                className="bg-neutral-700 px-2 py-0.5 rounded text-neutral-300 text-xs font-mono min-w-[40px] text-center border border-transparent ml-auto"
                 onPointerDown={e => e.stopPropagation()}
-                onClick={() => copy(num.toString())}
             >
-                {num.toFixed(3)}
+                {formatNumericValue(num, false)}
+            </div>
+        );
+    }
+    if (type === 'int') {
+        if (onChange) {
+            return <NumericValueEditor label={label} value={value} onChange={onChange} integer />;
+        }
+        const num = normalizeNumericValue(value, true);
+        return (
+            <div 
+                className="bg-neutral-700 px-2 py-0.5 rounded text-neutral-300 text-xs font-mono min-w-[40px] text-center border border-transparent ml-auto"
+                onPointerDown={e => e.stopPropagation()}
+            >
+                {formatNumericValue(num, true)}
             </div>
         );
     }
@@ -266,16 +516,17 @@ const ValueWidget: React.FC<{ type: string; value: any }> = ({ type, value }) =>
         )
     }
     if (type === 'color') {
+        if (onChange) {
+            return <ColorValueEditor value={value} onChange={onChange} />;
+        }
         if (!isValidColor(value)) return null;
         const bg = `rgb(${value[0] * 255}, ${value[1] * 255}, ${value[2] * 255})`;
-        const hex = rgbToHex(value);
         return (
              <div 
-                className="w-[40px] h-[18px] rounded border border-neutral-600 shadow-sm ml-auto cursor-pointer" 
+                className="w-[40px] h-[18px] rounded border border-neutral-600 shadow-sm ml-auto" 
                 style={{ backgroundColor: bg }} 
-                onClick={() => copy(hex)}
                 onPointerDown={e => e.stopPropagation()}
-                title={hex}
+                title={rgbToHex(value)}
              />
         );
     }
@@ -297,10 +548,11 @@ const getPortHighlightState = (portId: string, activePortId?: string | null, hov
 
 const InputRow: React.FC<{
     port: NodePort;
+    onValueChange?: (portId: string, value: any) => void;
     activePortId?: string | null;
     hoveredPortId?: string | null;
     hoveredPortValid?: boolean;
-}> = ({ port, activePortId, hoveredPortId, hoveredPortValid }) => {
+}> = ({ port, onValueChange, activePortId, hoveredPortId, hoveredPortValid }) => {
     // Logic:
     // Connected: Show Dot + Label. (Widget hidden).
     // Not Connected:
@@ -310,39 +562,51 @@ const InputRow: React.FC<{
     const showDot = port.connected || (!port.connected && !port.hide_port);
     const showWidget = !port.connected; 
     
-    // Large widgets (Gradient, Curve) break onto a new line
-    const isLargeWidget = port.type === 'gradient' || port.type === 'float_curve';
+    const isLargeWidget = isExpandedInputWidget(port.type);
+    const embedLabelInWidget = isEmbeddedNumericInput(port.type);
+    const showInlineColorWidget = isInlineColorInput(port.type);
     const highlightState = getPortHighlightState(port.id, activePortId, hoveredPortId, hoveredPortValid);
 
     return (
         <div className={`flex flex-col min-h-[24px] justify-center ${isLargeWidget ? 'mb-2' : ''}`}>
-             <div className="flex items-center gap-2 h-[24px] rounded">
+             <div className={`flex items-center gap-2 rounded ${embedLabelInWidget ? 'min-h-[28px]' : 'h-[24px]'}`}>
                  {/* Port Dot - Positioned on the left edge with negative margin */}
                  <div
                      className={`relative z-[60] w-[12px] flex items-center justify-center -ml-[14px] cursor-default ${!showDot ? 'invisible' : ''}`}
                      data-port-id={port.id}
                      data-port-direction="input"
                      data-port-type={port.type}
-                 >
-                     <PortDot type={port.type} isConnected={port.connected} highlightState={highlightState} />
-                 </div>
-                 
-                 {/* Label */}
-                 <span className="text-neutral-300 text-xs truncate select-none">{port.name}</span>
+                  >
+                      <PortDot type={port.type} isConnected={port.connected} highlightState={highlightState} />
+                  </div>
+                  
+                  {(!embedLabelInWidget || !showWidget) && (
+                      <span className="text-neutral-300 text-xs truncate select-none flex-1">{port.name}</span>
+                  )}
 
-                 {/* Inline Widget (if not connected and small) */}
-                 {showWidget && !isLargeWidget && (
-                     <ValueWidget type={port.type} value={port.value} />
-                 )}
-             </div>
+                  {showWidget && embedLabelInWidget && (
+                      <div className="flex-1 pr-1">
+                          <ValueWidget type={port.type} value={port.value} label={port.name} onChange={onValueChange ? (value) => onValueChange(port.id, value) : undefined} />
+                      </div>
+                  )}
 
-             {/* Block Widget (if not connected and large) */}
-             {showWidget && isLargeWidget && (
-                 <div className="pl-4 pr-1">
-                      <ValueWidget type={port.type} value={port.value} />
-                 </div>
-             )}
-        </div>
+                  {showWidget && showInlineColorWidget && (
+                      <ValueWidget type={port.type} value={port.value} onChange={onValueChange ? (value) => onValueChange(port.id, value) : undefined} />
+                  )}
+
+                  {/* Inline Widget (if not connected and small) */}
+                  {showWidget && !isLargeWidget && !embedLabelInWidget && !showInlineColorWidget && (
+                      <ValueWidget type={port.type} value={port.value} label={port.name} onChange={onValueChange ? (value) => onValueChange(port.id, value) : undefined} />
+                  )}
+              </div>
+
+              {/* Block Widget (if not connected and large) */}
+              {showWidget && isLargeWidget && (
+                  <div className="pl-4 pr-1">
+                       <ValueWidget type={port.type} value={port.value} label={port.name} onChange={onValueChange ? (value) => onValueChange(port.id, value) : undefined} />
+                  </div>
+              )}
+         </div>
     )
 }
 
@@ -392,7 +656,7 @@ const PropertyRow: React.FC<{ property: NodeProperty }> = ({ property }) => {
     )
 }
 
-export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, isSelected, activePortId, hoveredPortId, hoveredPortValid }) => {
+export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, onInputValueChange, isSelected, activePortId, hoveredPortId, hoveredPortValid }) => {
   const { x, y } = data.position;
   // Handle optional size gracefully
   const width = data.size?.width ?? 200;
@@ -493,10 +757,17 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, isSelected, active
         {data.inputs && data.inputs.length > 0 && (
              <div className="flex flex-col gap-[4px] w-full">
                  {data.inputs.map((port) => (
-                    <InputRow key={port.id} port={port} activePortId={activePortId} hoveredPortId={hoveredPortId} hoveredPortValid={hoveredPortValid} />
+                    <InputRow
+                        key={port.id}
+                        port={port}
+                        onValueChange={onInputValueChange ? (portId, value) => onInputValueChange(data.id, portId, value) : undefined}
+                        activePortId={activePortId}
+                        hoveredPortId={hoveredPortId}
+                        hoveredPortValid={hoveredPortValid}
+                    />
                  ))}
              </div>
-         )}
+          )}
 
       </div>
     </div>

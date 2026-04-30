@@ -38,6 +38,19 @@ export const rgbToHex = (color: number[]): string => {
   return `#${toHex(color[0])}${toHex(color[1])}${toHex(color[2])}`;
 };
 
+export const hexToRgb = (hex: string, alpha?: number): number[] | null => {
+  const normalized = hex.trim().replace(/^#/, '');
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return null;
+
+  const rgb = [
+    parseInt(normalized.slice(0, 2), 16) / 255,
+    parseInt(normalized.slice(2, 4), 16) / 255,
+    parseInt(normalized.slice(4, 6), 16) / 255,
+  ];
+
+  return typeof alpha === 'number' ? [...rgb, alpha] : rgb;
+};
+
 export const generateGradientCSS = (stops: any[]): string => {
   if (!stops || stops.length === 0) return '#4b4b4b'; 
 
@@ -62,6 +75,9 @@ const getInputHeight = (port: NodePort): number => {
     
     // If disconnected, check type for widgets
     switch (port.type) {
+        case 'float': return 28;
+        case 'int': return 28;
+        case 'color': return 24;
         case 'gradient': return 72; // Row(24) + Widget(40) + Margin(8)
         case 'float_curve': return 168; // Row(24) + Widget(136) + Margin(8)
         case 'vector3': return BASE_H; 
