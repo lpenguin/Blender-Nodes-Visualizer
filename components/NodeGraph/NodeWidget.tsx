@@ -3,6 +3,7 @@ import { NodeData, NodePort, NodeProperty } from '../../types';
 import { getPortColor, isValidVector3, isValidColor, isValidGradient, generateGradientCSS, rgbToHex, isValidRotation } from '../../utils';
 import { AlertTriangle, HelpCircle } from 'lucide-react';
 import { useToast } from '../UI/Toast';
+import { TSL_NODE_BY_TYPE } from '../../tslNodes';
 
 interface NodeWidgetProps {
   data: NodeData;
@@ -359,12 +360,40 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, isSelected }) => {
   const width = data.size?.width ?? 200;
   const height = data.size?.height ?? 100;
 
+  // TSL node type header colors
   let headerClass = "bg-neutral-700";
-  if (data.type.includes("Input") || data.type.includes("Coord")) headerClass = "bg-red-900/80"; 
-  if (data.type.includes("Output")) headerClass = "bg-neutral-800 border-b border-neutral-600";
-  if (data.type.includes("Shader")) headerClass = "bg-green-900/60"; 
-  if (data.type.includes("Geometry")) headerClass = "bg-emerald-900/60";
-  if (data.type.includes("ValToRGB")) headerClass = "bg-yellow-900/60"; 
+  if (data.type.startsWith('tsl:')) {
+    const tslType = data.type.slice(4);
+    if (tslType === 'MaterialOutput' || tslType === 'PhysicalMaterialOutput') {
+      headerClass = "bg-neutral-800 border-b border-neutral-600";
+    } else if (['Add', 'Sub', 'Mul', 'Div', 'Abs', 'Sin', 'Cos', 'Pow', 'Sqrt', 'Clamp', 'Mix',
+                 'Step', 'Smoothstep', 'Min', 'Max', 'Fract', 'Floor', 'Ceil', 'Round',
+                 'Mod', 'Sign', 'Log', 'Exp'].includes(tslType)) {
+      headerClass = "bg-violet-900/70";
+    } else if (['Dot', 'Cross', 'Normalize', 'Length', 'Distance', 'Reflect', 'Refract',
+                 'SplitXYZ', 'CombineXYZ'].includes(tslType)) {
+      headerClass = "bg-indigo-900/70";
+    } else if (['UV', 'Time', 'PositionLocal', 'PositionWorld', 'PositionView',
+                 'NormalLocal', 'NormalWorld', 'NormalView', 'CameraPosition', 'VertexColor'].includes(tslType)) {
+      headerClass = "bg-amber-900/70";
+    } else if (['FloatNode', 'Vec2Node', 'Vec3Node', 'Vec4Node', 'ColorNode',
+                 'UniformFloat', 'UniformVec3', 'UniformColor'].includes(tslType)) {
+      headerClass = "bg-sky-900/70";
+    } else if (['TextureSample'].includes(tslType)) {
+      headerClass = "bg-teal-900/70";
+    } else if (['MixColor', 'Hue', 'Saturation', 'Luminance'].includes(tslType)) {
+      headerClass = "bg-yellow-900/60";
+    } else if (['OneMinus', 'Negate', 'Reciprocal', 'ToFloat', 'ToVec3', 'ToColor'].includes(tslType)) {
+      headerClass = "bg-neutral-700";
+    }
+  } else {
+    // Legacy Blender node colours
+    if (data.type.includes("Input") || data.type.includes("Coord")) headerClass = "bg-red-900/80";
+    if (data.type.includes("Output")) headerClass = "bg-neutral-800 border-b border-neutral-600";
+    if (data.type.includes("Shader")) headerClass = "bg-green-900/60";
+    if (data.type.includes("Geometry")) headerClass = "bg-emerald-900/60";
+    if (data.type.includes("ValToRGB")) headerClass = "bg-yellow-900/60";
+  }
 
   const baseHandleClass = "absolute z-50 pointer-events-auto bg-transparent";
   const cornerSize = "w-3 h-3";
@@ -394,6 +423,11 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, isSelected }) => {
       {/* Header */}
       <div className={`h-[32px] px-3 ${headerClass} rounded-t-md text-white font-medium text-xs tracking-wide flex items-center justify-between shrink-0 overflow-hidden`}>
         <span className="truncate">{data.name}</span>
+        {data.type.startsWith('tsl:') && TSL_NODE_BY_TYPE.get(data.type)?.tslFn && (
+          <span className="text-[9px] font-mono text-white/40 shrink-0 ml-2 hidden sm:inline">
+            {TSL_NODE_BY_TYPE.get(data.type)!.tslFn}()
+          </span>
+        )}
       </div>
 
       {/* Body: Outputs -> Properties -> Inputs */}
