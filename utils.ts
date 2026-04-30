@@ -202,6 +202,30 @@ export const calculateBezierPath = (
   return `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
 };
 
+export const applyConnectionState = (schema: GraphSchema): GraphSchema => {
+  const connectedInputs = new Set(schema.connections.map(connection => connection.to));
+
+  const nodes = schema.nodes.map((node) => {
+    const normalizedNode: NodeData = {
+      ...node,
+      inputs: node.inputs?.map((input) => ({
+        ...input,
+        connected: connectedInputs.has(input.id),
+      })),
+    };
+
+    return {
+      ...normalizedNode,
+      size: normalizedNode.size || calculateNodeContentSize(normalizedNode),
+    };
+  });
+
+  return {
+    ...schema,
+    nodes,
+  };
+};
+
 export const parseGraphJSON = (json: string): { schema: GraphSchema | null; error: string | null } => {
   try {
     const parsed = JSON.parse(json);
@@ -209,14 +233,8 @@ export const parseGraphJSON = (json: string): { schema: GraphSchema | null; erro
       return { schema: null, error: "Invalid JSON: 'nodes' array missing." };
     }
     
-    // Auto-calculate size if missing
-    parsed.nodes = parsed.nodes.map((n: any) => ({
-         ...n,
-         size: n.size || calculateNodeContentSize(n) 
-    }));
-
     parsed.connections = parsed.connections || [];
-    return { schema: parsed as GraphSchema, error: null };
+    return { schema: applyConnectionState(parsed as GraphSchema), error: null };
   } catch (e: any) {
     return { schema: null, error: e.message || "Invalid JSON syntax." };
   }

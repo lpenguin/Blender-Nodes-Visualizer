@@ -8,13 +8,27 @@ import { TSL_NODE_BY_TYPE } from '../../tslNodes';
 interface NodeWidgetProps {
   data: NodeData;
   isSelected?: boolean;
+  activePortId?: string | null;
+  hoveredPortId?: string | null;
+  hoveredPortValid?: boolean;
 }
 
-const PortDot: React.FC<{ type: string; isConnected?: boolean }> = ({ type, isConnected }) => {
+type PortHighlightState = 'idle' | 'active' | 'hover-valid' | 'hover-invalid';
+
+const PortDot: React.FC<{ type: string; isConnected?: boolean; highlightState?: PortHighlightState }> = ({ type, isConnected, highlightState = 'idle' }) => {
   const color = getPortColor(type);
+  const highlightClass =
+    highlightState === 'active'
+      ? 'scale-125 ring-2 ring-white/70 shadow-[0_0_0_3px_rgba(250,204,21,0.35)]'
+      : highlightState === 'hover-valid'
+        ? 'scale-125 ring-2 ring-emerald-300/80 shadow-[0_0_0_3px_rgba(74,222,128,0.3)]'
+        : highlightState === 'hover-invalid'
+          ? 'scale-110 ring-2 ring-red-400/80 shadow-[0_0_0_3px_rgba(248,113,113,0.25)]'
+          : '';
+
   return (
     <div 
-      className={`w-[12px] h-[12px] rounded-full border border-neutral-900 ${isConnected ? '' : 'opacity-80'} shrink-0`}
+      className={`w-[12px] h-[12px] rounded-full border border-neutral-900 ${isConnected ? '' : 'opacity-80'} shrink-0 transition-all duration-100 ${highlightClass}`}
       style={{ backgroundColor: color }}
     />
   );
@@ -275,7 +289,18 @@ const ValueWidget: React.FC<{ type: string; value: any }> = ({ type, value }) =>
     return null;
 }
 
-const InputRow: React.FC<{ port: NodePort }> = ({ port }) => {
+const getPortHighlightState = (portId: string, activePortId?: string | null, hoveredPortId?: string | null, hoveredPortValid?: boolean): PortHighlightState => {
+    if (portId === activePortId) return 'active';
+    if (portId === hoveredPortId) return hoveredPortValid ? 'hover-valid' : 'hover-invalid';
+    return 'idle';
+};
+
+const InputRow: React.FC<{
+    port: NodePort;
+    activePortId?: string | null;
+    hoveredPortId?: string | null;
+    hoveredPortValid?: boolean;
+}> = ({ port, activePortId, hoveredPortId, hoveredPortValid }) => {
     // Logic:
     // Connected: Show Dot + Label. (Widget hidden).
     // Not Connected:
@@ -287,13 +312,19 @@ const InputRow: React.FC<{ port: NodePort }> = ({ port }) => {
     
     // Large widgets (Gradient, Curve) break onto a new line
     const isLargeWidget = port.type === 'gradient' || port.type === 'float_curve';
+    const highlightState = getPortHighlightState(port.id, activePortId, hoveredPortId, hoveredPortValid);
 
     return (
         <div className={`flex flex-col min-h-[24px] justify-center ${isLargeWidget ? 'mb-2' : ''}`}>
-             <div className="flex items-center gap-2 h-[24px]">
+             <div className="flex items-center gap-2 h-[24px] rounded">
                  {/* Port Dot - Positioned on the left edge with negative margin */}
-                 <div className={`w-[12px] flex items-center justify-center -ml-[14px] ${!showDot ? 'invisible' : ''}`}>
-                     <PortDot type={port.type} isConnected={port.connected} />
+                 <div
+                     className={`relative z-[60] w-[12px] flex items-center justify-center -ml-[14px] cursor-default ${!showDot ? 'invisible' : ''}`}
+                     data-port-id={port.id}
+                     data-port-direction="input"
+                     data-port-type={port.type}
+                 >
+                     <PortDot type={port.type} isConnected={port.connected} highlightState={highlightState} />
                  </div>
                  
                  {/* Label */}
@@ -315,13 +346,20 @@ const InputRow: React.FC<{ port: NodePort }> = ({ port }) => {
     )
 }
 
-const OutputRow: React.FC<{ port: NodePort }> = ({ port }) => {
+const OutputRow: React.FC<{
+    port: NodePort;
+    activePortId?: string | null;
+    hoveredPortId?: string | null;
+    hoveredPortValid?: boolean;
+}> = ({ port, activePortId, hoveredPortId, hoveredPortValid }) => {
+    const highlightState = getPortHighlightState(port.id, activePortId, hoveredPortId, hoveredPortValid);
+
     return (
-        <div className="flex items-center justify-end gap-2 h-[24px] w-full">
+        <div className="flex items-center justify-end gap-2 h-[24px] w-full rounded">
             <span className="text-neutral-300 text-xs truncate text-right select-none">{port.name}</span>
             {/* Port Dot - Positioned on the right edge with negative margin */}
-            <div className="-mr-[14px]">
-                <PortDot type={port.type} isConnected={true} /> 
+            <div className="relative z-[60] -mr-[14px] cursor-default" data-port-id={port.id} data-port-direction="output" data-port-type={port.type}>
+                <PortDot type={port.type} isConnected={true} highlightState={highlightState} /> 
             </div>
         </div>
     )
@@ -354,7 +392,7 @@ const PropertyRow: React.FC<{ property: NodeProperty }> = ({ property }) => {
     )
 }
 
-export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, isSelected }) => {
+export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, isSelected, activePortId, hoveredPortId, hoveredPortValid }) => {
   const { x, y } = data.position;
   // Handle optional size gracefully
   const width = data.size?.width ?? 200;
@@ -435,12 +473,12 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, isSelected }) => {
         
         {/* Outputs Section */}
         {data.outputs && data.outputs.length > 0 && (
-             <div className="flex flex-col gap-[4px] w-full items-end border-b border-neutral-700/30 pb-1 mb-1">
-                {data.outputs.map((port) => (
-                    <OutputRow key={port.id} port={port} />
-                ))}
-            </div>
-        )}
+                 <div className="flex flex-col gap-[4px] w-full items-end border-b border-neutral-700/30 pb-1 mb-1">
+                 {data.outputs.map((port) => (
+                    <OutputRow key={port.id} port={port} activePortId={activePortId} hoveredPortId={hoveredPortId} hoveredPortValid={hoveredPortValid} />
+                 ))}
+             </div>
+         )}
 
         {/* Properties Section */}
         {data.properties && data.properties.length > 0 && (
@@ -454,11 +492,11 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, isSelected }) => {
         {/* Inputs Section */}
         {data.inputs && data.inputs.length > 0 && (
              <div className="flex flex-col gap-[4px] w-full">
-                {data.inputs.map((port) => (
-                    <InputRow key={port.id} port={port} />
-                ))}
-            </div>
-        )}
+                 {data.inputs.map((port) => (
+                    <InputRow key={port.id} port={port} activePortId={activePortId} hoveredPortId={hoveredPortId} hoveredPortValid={hoveredPortValid} />
+                 ))}
+             </div>
+         )}
 
       </div>
     </div>

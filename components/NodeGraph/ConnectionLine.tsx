@@ -9,9 +9,10 @@ interface ConnectionLineProps {
   y2: number;
   sourceType: DataType;
   targetType: DataType;
+  isPreview?: boolean;
 }
 
-export const ConnectionLine: React.FC<ConnectionLineProps> = ({ x1, y1, x2, y2, sourceType, targetType }) => {
+export const ConnectionLine: React.FC<ConnectionLineProps> = ({ x1, y1, x2, y2, sourceType, targetType, isPreview = false }) => {
   const pathData = calculateBezierPath(x1, y1, x2, y2);
   const startColor = getPortColor(sourceType);
   const endColor = getPortColor(targetType);
@@ -42,9 +43,9 @@ export const ConnectionLine: React.FC<ConnectionLineProps> = ({ x1, y1, x2, y2, 
         d={pathData}
         fill="none"
         stroke="#171717" // Neutral-900 matches bg
-        strokeWidth="4"
+        strokeWidth={isPreview ? '5' : '4'}
         strokeLinecap="round"
-        className="opacity-50"
+        className={isPreview ? 'opacity-30' : 'opacity-50'}
       />
       
       {/* Actual Line */}
@@ -54,7 +55,8 @@ export const ConnectionLine: React.FC<ConnectionLineProps> = ({ x1, y1, x2, y2, 
         stroke={isGradient ? `url(#${gradientId})` : startColor}
         strokeWidth="2"
         strokeLinecap="round"
-        className="transition-colors duration-200"
+        strokeDasharray={isPreview ? '6 6' : undefined}
+        className={`transition-colors duration-200 ${isPreview ? 'opacity-80' : ''}`}
       />
     </g>
   );

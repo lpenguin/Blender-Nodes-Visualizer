@@ -5,10 +5,10 @@ import { JsonEditor } from './components/UI/JsonEditor';
 import { ToastProvider } from './components/UI/Toast';
 import { NodePicker } from './components/UI/NodePicker';
 import { TSLCodePanel } from './components/UI/TSLCodePanel';
-import { parseGraphJSON } from './utils';
+import { applyConnectionState, parseGraphJSON } from './utils';
 import { exportTSL } from './tslExport';
 import { DEFAULT_JSON_EXAMPLE } from './constants';
-import { GraphSchema, NodeData } from './types';
+import { GraphSchema, NodeData, ConnectionData } from './types';
 import { TSLNodeDef } from './tslNodes';
 
 function App() {
@@ -46,13 +46,20 @@ function App() {
 
   const handleNodesChange = (updatedNodes: NodeData[]) => {
     if (!schema) return;
-    const newSchema = { ...schema, nodes: updatedNodes };
+    const newSchema = applyConnectionState({ ...schema, nodes: updatedNodes });
     setSchema(newSchema);
   };
 
-  const handleInteractionEnd = () => {
+  const handleConnectionsChange = (updatedConnections: ConnectionData[]) => {
     if (!schema) return;
-    setJsonInput(JSON.stringify(schema, null, 2));
+    const newSchema = applyConnectionState({ ...schema, connections: updatedConnections });
+    setSchema(newSchema);
+  };
+
+  const handleInteractionEnd = (nextSchema?: GraphSchema) => {
+    const schemaToPersist = nextSchema ? applyConnectionState(nextSchema) : schema;
+    if (!schemaToPersist) return;
+    setJsonInput(JSON.stringify(schemaToPersist, null, 2));
   };
 
   // Add a node from the picker onto the canvas
@@ -91,10 +98,10 @@ function App() {
       })),
     };
 
-    const updated: GraphSchema = {
+    const updated = applyConnectionState({
       ...newSchema,
       nodes: [...newSchema.nodes, newNode],
-    };
+    });
     setSchema(updated);
     setJsonInput(JSON.stringify(updated, null, 2));
   }, [schema]);
@@ -124,11 +131,12 @@ function App() {
           {/* Canvas Area */}
           <div className="absolute inset-0 z-0">
             {schema ? (
-              <GraphCanvas
-                schema={schema}
-                onNodesChange={handleNodesChange}
-                onInteractionEnd={handleInteractionEnd}
-              />
+                <GraphCanvas
+                  schema={schema}
+                  onNodesChange={handleNodesChange}
+                  onConnectionsChange={handleConnectionsChange}
+                  onInteractionEnd={handleInteractionEnd}
+                />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-neutral-600 flex-col gap-4">
                 <p>No valid graph data.</p>

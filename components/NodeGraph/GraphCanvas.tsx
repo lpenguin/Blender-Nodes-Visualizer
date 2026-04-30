@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { GraphSchema, ViewportState, NodeData } from '../../types';
+import { GraphSchema, ViewportState, NodeData, ConnectionData, DataType } from '../../types';
 import { NodeWidget } from './NodeWidget';
 import { ConnectionLine } from './ConnectionLine';
 import { getPortPosition, calculateNodeContentSize } from '../../utils';
@@ -7,10 +7,31 @@ import { getPortPosition, calculateNodeContentSize } from '../../utils';
 interface GraphCanvasProps {
   schema: GraphSchema;
   onNodesChange?: (nodes: NodeData[]) => void;
-  onInteractionEnd?: () => void;
+  onConnectionsChange?: (connections: ConnectionData[]) => void;
+  onInteractionEnd?: (schema?: GraphSchema) => void;
 }
 
-type InteractionMode = 'IDLE' | 'PANNING' | 'DRAGGING_NODES' | 'BOX_SELECTING' | 'RESIZING_NODE' | 'PINCH_ZOOM';
+type InteractionMode = 'IDLE' | 'PANNING' | 'DRAGGING_NODES' | 'BOX_SELECTING' | 'RESIZING_NODE' | 'PINCH_ZOOM' | 'DRAGGING_CONNECTION';
+
+type PortDirection = 'input' | 'output';
+
+interface PortMeta {
+  portId: string;
+  direction: PortDirection;
+  type: DataType;
+}
+
+interface ConnectionDragState {
+  anchorPortId: string;
+  anchorDirection: PortDirection;
+  anchorType: DataType;
+  anchorPos: { x: number; y: number };
+  currentPos: { x: number; y: number };
+  hoveredPortId: string | null;
+  hoveredPortValid: boolean;
+  detachedConnection: ConnectionData | null;
+  startedFromPortId: string;
+}
 
 interface SelectionBox {
   startX: number; // Screen coords
@@ -33,12 +54,13 @@ interface PinchState {
     startViewportPos: { x: number; y: number };
 }
 
-export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange, onInteractionEnd }) => {
+export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange, onConnectionsChange, onInteractionEnd }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState<ViewportState>({ x: 0, y: 0, scale: 1 });
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<InteractionMode>('IDLE');
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
+  const [connectionDrag, setConnectionDrag] = useState<ConnectionDragState | null>(null);
   
   // Refs for interaction state
   const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -72,6 +94,156 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
       return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
   };
 
+  const getPortMetaFromElement = (element: Element | null): PortMeta | null => {
+    const portElement = element instanceof HTMLElement ? element.closest<HTMLElement>('[data-port-id]') : null;
+    const portId = portElement?.getAttribute('data-port-id');
+    const direction = portElement?.getAttribute('data-port-direction');
+    const type = portElement?.getAttribute('data-port-type') as DataType | null;
+
+    if (!portId || !type || (direction !== 'input' && direction !== 'output')) {
+      return null;
+    }
+
+    return { portId, direction, type };
+  };
+
+  const getHoveredPort = (clientX: number, clientY: number): PortMeta | null => {
+    const portAtPointer = getPortAtPointer(clientX, clientY);
+    if (portAtPointer) return portAtPointer;
+    if (typeof document === 'undefined') return null;
+    return getPortMetaFromElement(document.elementFromPoint(clientX, clientY));
+  };
+
+  const getPortById = (portId: string, direction: PortDirection): PortMeta | null => {
+    for (const node of schemaRef.current.nodes) {
+      const ports = direction === 'output' ? node.outputs : node.inputs;
+      const port = ports?.find((candidate) => candidate.id === portId);
+      if (port) {
+        return {
+          portId,
+          direction,
+          type: port.type,
+        };
+      }
+    }
+
+    return null;
+  };
+
+  const getPortAtPointer = (clientX: number, clientY: number) => {
+    const viewportState = viewportRef.current;
+    const hitRadius = Math.max(10, viewportState.scale * 12);
+    let closestPort: { meta: PortMeta; distance: number } | null = null;
+
+    for (const node of schemaRef.current.nodes) {
+      for (const output of node.outputs ?? []) {
+        const position = getPortPosition(node, output.id, 'output');
+        if (!position) continue;
+
+        const screenX = (position.x * viewportState.scale) + viewportState.x;
+        const screenY = (position.y * viewportState.scale) + viewportState.y;
+        const distance = Math.hypot(screenX - clientX, screenY - clientY);
+
+        if (distance <= hitRadius && (!closestPort || distance < closestPort.distance)) {
+          closestPort = {
+            meta: { portId: output.id, direction: 'output', type: output.type },
+            distance,
+          };
+        }
+      }
+
+      for (const input of node.inputs ?? []) {
+        const position = getPortPosition(node, input.id, 'input');
+        if (!position) continue;
+
+        const screenX = (position.x * viewportState.scale) + viewportState.x;
+        const screenY = (position.y * viewportState.scale) + viewportState.y;
+        const distance = Math.hypot(screenX - clientX, screenY - clientY);
+
+        if (distance <= hitRadius && (!closestPort || distance < closestPort.distance)) {
+          closestPort = {
+            meta: { portId: input.id, direction: 'input', type: input.type },
+            distance,
+          };
+        }
+      }
+    }
+
+    return closestPort?.meta ?? null;
+  };
+
+  const getPortAnchorPosition = (portId: string, direction: PortDirection) => {
+    const node = schemaRef.current.nodes.find((candidate) =>
+      direction === 'output'
+        ? candidate.outputs?.some((port) => port.id === portId)
+        : candidate.inputs?.some((port) => port.id === portId)
+    );
+
+    return node ? getPortPosition(node, portId, direction) : null;
+  };
+
+  const isConnectionTargetValid = (dragState: ConnectionDragState, port: PortMeta | null): port is PortMeta => {
+    return !!port && port.direction !== dragState.anchorDirection && port.portId !== dragState.anchorPortId;
+  };
+
+  const buildConnectionsForDrop = (dragState: ConnectionDragState, targetPort: PortMeta) => {
+    const nextConnection = dragState.anchorDirection === 'output'
+      ? { from: dragState.anchorPortId, to: targetPort.portId }
+      : { from: targetPort.portId, to: dragState.anchorPortId };
+
+    const connections = schemaRef.current.connections.filter((connection) => {
+      if (connection.to === nextConnection.to) return false;
+      if (dragState.detachedConnection) {
+        return connection.from !== dragState.detachedConnection.from || connection.to !== dragState.detachedConnection.to;
+      }
+      return true;
+    });
+
+    return [...connections, nextConnection];
+  };
+
+  const createConnectionDragState = (port: PortMeta, clientX: number, clientY: number): ConnectionDragState | null => {
+    const currentPos = screenToWorld(clientX, clientY);
+
+    if (port.direction === 'input') {
+      const detachedConnection = schemaRef.current.connections.find((connection) => connection.to === port.portId) ?? null;
+
+      if (detachedConnection) {
+        const sourcePort = getPortById(detachedConnection.from, 'output');
+        const anchorPos = sourcePort ? getPortAnchorPosition(sourcePort.portId, 'output') : null;
+
+        if (sourcePort && anchorPos) {
+          return {
+            anchorPortId: sourcePort.portId,
+            anchorDirection: 'output',
+            anchorType: sourcePort.type,
+            anchorPos,
+            currentPos,
+            hoveredPortId: null,
+            hoveredPortValid: false,
+            detachedConnection,
+            startedFromPortId: port.portId,
+          };
+        }
+      }
+    }
+
+    const anchorPos = getPortAnchorPosition(port.portId, port.direction);
+    if (!anchorPos) return null;
+
+    return {
+      anchorPortId: port.portId,
+      anchorDirection: port.direction,
+      anchorType: port.type,
+      anchorPos,
+      currentPos,
+      hoveredPortId: null,
+      hoveredPortValid: false,
+      detachedConnection: null,
+      startedFromPortId: port.portId,
+    };
+  };
+
   // --- Handlers ---
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -83,6 +255,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     const resizeHandle = target.getAttribute('data-resize-handle');
     const clickedNodeEl = target.closest('[data-node-id]');
     const clickedNodeId = clickedNodeEl?.getAttribute('data-node-id');
+    const clickedPort = getPortAtPointer(e.clientX, e.clientY) ?? getPortMetaFromElement(target);
 
     // --- CHECK MULTI-TOUCH (PINCH) ---
     if (activePointersRef.current.size === 2) {
@@ -116,7 +289,20 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
 
         if (e.button === 0) { // Primary Button (or Touch)
             
-            // 1. Resizing (Priority)
+            // 1. Connection Dragging
+            if (clickedPort) {
+                const dragState = createConnectionDragState(clickedPort, e.clientX, e.clientY);
+                if (!dragState) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+                setMode('DRAGGING_CONNECTION');
+                setSelectionBox(null);
+                setConnectionDrag(dragState);
+                return;
+            }
+
+            // 2. Resizing
             if (resizeHandle && clickedNodeId) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -139,7 +325,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
                 return;
             }
 
-            // 2. Node Interaction
+            // 3. Node Interaction
             if (clickedNodeId) {
                 e.preventDefault();
                 setMode('DRAGGING_NODES');
@@ -191,7 +377,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
                 return;
             }
 
-            // 3. Background Interaction
+            // 4. Background Interaction
             e.preventDefault();
             
             if (e.pointerType === 'touch') {
@@ -251,6 +437,20 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
             setViewport({ x: newX, y: newY, scale: newScale });
         }
         return;
+    }
+
+    // --- DRAGGING CONNECTION ---
+    if (mode === 'DRAGGING_CONNECTION' && connectionDrag) {
+      const hoveredPort = getHoveredPort(e.clientX, e.clientY);
+      const hoveredPortValid = isConnectionTargetValid(connectionDrag, hoveredPort);
+
+      setConnectionDrag({
+        ...connectionDrag,
+        currentPos: screenToWorld(e.clientX, e.clientY),
+        hoveredPortId: hoveredPort?.portId ?? null,
+        hoveredPortValid,
+      });
+      return;
     }
 
     // --- PANNING ---
@@ -361,6 +561,29 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
         containerRef.current.releasePointerCapture(e.pointerId);
     }
 
+    if (mode === 'DRAGGING_CONNECTION' && connectionDrag && activePointersRef.current.size === 0) {
+        const hoveredPort = getHoveredPort(e.clientX, e.clientY);
+        const hoveredPortValid = isConnectionTargetValid(connectionDrag, hoveredPort);
+
+        if (hoveredPortValid && onConnectionsChange) {
+            const updatedConnections = buildConnectionsForDrop(connectionDrag, hoveredPort);
+            const updatedSchema = { ...schemaRef.current, connections: updatedConnections };
+            onConnectionsChange(updatedConnections);
+            if (onInteractionEnd) onInteractionEnd(updatedSchema);
+        } else if (connectionDrag.detachedConnection && onConnectionsChange) {
+            const updatedConnections = schemaRef.current.connections.filter(
+                (connection) => connection.from !== connectionDrag.detachedConnection?.from || connection.to !== connectionDrag.detachedConnection?.to
+            );
+            const updatedSchema = { ...schemaRef.current, connections: updatedConnections };
+            onConnectionsChange(updatedConnections);
+            if (onInteractionEnd) onInteractionEnd(updatedSchema);
+        }
+
+        setConnectionDrag(null);
+        setMode('IDLE');
+        return;
+    }
+
     if (mode === 'PINCH_ZOOM') {
         if (activePointersRef.current.size < 2) {
              if (activePointersRef.current.size === 1) {
@@ -378,13 +601,14 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     } else if (activePointersRef.current.size === 0) {
         if (mode !== 'IDLE') {
             // Trigger save if we were modifying nodes
-            if ((mode === 'DRAGGING_NODES' || mode === 'RESIZING_NODE') && onInteractionEnd) {
-                onInteractionEnd();
-            }
+             if ((mode === 'DRAGGING_NODES' || mode === 'RESIZING_NODE') && onInteractionEnd) {
+                 onInteractionEnd();
+             }
 
-            setMode('IDLE');
-            setSelectionBox(null);
-            resizingStateRef.current = null;
+             setMode('IDLE');
+             setSelectionBox(null);
+             setConnectionDrag(null);
+             resizingStateRef.current = null;
         }
     }
   };
@@ -413,7 +637,11 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
 
   // --- Rendering ---
 
-  const connectionLines = schema.connections.map((conn, idx) => {
+  const detachedConnection = connectionDrag?.detachedConnection;
+
+  const connectionLines = schema.connections
+    .filter((conn) => !detachedConnection || conn.from !== detachedConnection.from || conn.to !== detachedConnection.to)
+    .map((conn, idx) => {
     const actualSourceNode = schema.nodes.find(n => n.outputs?.some(o => o.id === conn.from));
     const actualTargetNode = schema.nodes.find(n => n.inputs?.some(i => i.id === conn.to));
 
@@ -441,12 +669,25 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     return null;
   });
 
+  const previewConnection = connectionDrag && (
+    <ConnectionLine
+      x1={connectionDrag.anchorDirection === 'output' ? connectionDrag.anchorPos.x : connectionDrag.currentPos.x}
+      y1={connectionDrag.anchorDirection === 'output' ? connectionDrag.anchorPos.y : connectionDrag.currentPos.y}
+      x2={connectionDrag.anchorDirection === 'output' ? connectionDrag.currentPos.x : connectionDrag.anchorPos.x}
+      y2={connectionDrag.anchorDirection === 'output' ? connectionDrag.currentPos.y : connectionDrag.anchorPos.y}
+      sourceType={connectionDrag.anchorType}
+      targetType={connectionDrag.anchorType}
+      isPreview
+    />
+  );
+
   return (
     <div 
       ref={containerRef}
       className={`w-full h-full bg-[#111] overflow-hidden relative touch-none select-none outline-none
         ${mode === 'PANNING' ? 'cursor-grabbing' : ''}
         ${mode === 'DRAGGING_NODES' ? 'cursor-move' : ''}
+        ${mode === 'DRAGGING_CONNECTION' ? 'cursor-grabbing' : ''}
         ${mode === 'IDLE' ? 'cursor-default' : ''}
         ${mode === 'BOX_SELECTING' ? 'cursor-crosshair' : ''}
         ${mode === 'RESIZING_NODE' ? 'cursor-nwse-resize' : ''} 
@@ -485,6 +726,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
                 className="absolute top-0 left-0 overflow-visible pointer-events-none w-1 h-1"
             >
                 {connectionLines}
+                {previewConnection}
             </svg>
 
             {/* 2. Nodes rendered on top */}
@@ -493,6 +735,9 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
                     key={node.id} 
                     data={node} 
                     isSelected={selectedNodeIds.has(node.id)}
+                    activePortId={connectionDrag ? (connectionDrag.detachedConnection ? connectionDrag.anchorPortId : connectionDrag.startedFromPortId) : null}
+                    hoveredPortId={connectionDrag?.hoveredPortId ?? null}
+                    hoveredPortValid={connectionDrag?.hoveredPortValid ?? false}
                 />
             ))}
         </div>
@@ -513,7 +758,11 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
         {/* HUD */}
         <div className="absolute bottom-4 left-4 bg-black/50 p-2 rounded text-xs text-neutral-400 font-mono pointer-events-none select-none z-50">
             Zoom: {Math.round(viewport.scale * 100)}% | X: {Math.round(viewport.x)} Y: {Math.round(viewport.y)} <br/>
-            {selectedNodeIds.size > 0 ? `${selectedNodeIds.size} selected` : 'L-Click: Select | Wheel: Zoom | Middle/Right: Pan'}
+            {mode === 'DRAGGING_CONNECTION'
+              ? 'Drag to a compatible port and release'
+              : selectedNodeIds.size > 0
+                ? `${selectedNodeIds.size} selected`
+                : 'L-Click: Select | Drag Ports: Connect | Wheel: Zoom | Middle/Right: Pan'}
         </div>
     </div>
   );
