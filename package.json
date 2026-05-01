@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "bun --hot index.html",
-    "build": "bun run scripts/build.ts",
+    "build": "bun build --outdir=dist index.html",
     "preview": "bunx serve dist",
     "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test:watch": "bun test --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@types/three": "^0.184.0",
@@ -18,12 +20,23 @@
     "three": "^0.184.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@happy-dom/global-registrator": "^20.9.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/bun": "^1.2.5",
+    "@types/eslint__js": "^9.14.0",
     "@types/node": "^22.14.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "eslint": "^10.3.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "happy-dom": "^20.9.0",
-    "typescript": "~5.8.2"
+    "jiti": "^2.6.1",
+    "typescript": "~5.8.2",
+    "typescript-eslint": "^8.59.1",
+    "zod": "^4.4.1"
   }
 }
