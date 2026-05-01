@@ -100,7 +100,7 @@ export function exportTSL(schema: GraphSchema): string {
       imports.add(def.tslFn);
       const args = (node.inputs ?? []).map((port, i) => {
         const portDef = def.inputs[i];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+         
         return getInputExpression(port.id, port.type, port.value ?? portDef.defaultValue ?? 0, connections, outputVarMap);
       });
       const callExpr = `${def.tslFn}(${args.join(', ')})`;

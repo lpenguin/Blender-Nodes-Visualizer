@@ -74,7 +74,7 @@ function getInputValue(
 ): TSLNode {
     const conn = connections.find(c => c.to === portId);
     if (conn) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+       
       const value = outputVarMap.get(conn.from);
       if (value !== undefined) return value;
     }
@@ -89,7 +89,7 @@ function getInputValue(
   ): TSLNode {
     const conn = connections.find(c => c.to === portId);
     if (conn) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+       
       const value = outputVarMap.get(conn.from);
       if (value !== undefined) return value;
     }
@@ -132,12 +132,12 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
       if (def.isSource) {
         const args = (node.inputs ?? []).map((port, i) => {
           const portDef = def.inputs[i];
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
+           
           return getInputRaw(port.id, port.value ?? portDef.defaultValue ?? 0, connections, outputVarMap);
         });
          
         const flatArgs = args.flatMap((a): TSLNode[] => Array.isArray(a) ? a : [a]);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+         
         const result = tslFn(...flatArgs);
         for (const out of node.outputs ?? []) {
           outputVarMap.set(out.id, result);
@@ -147,18 +147,18 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
 
       const args = (node.inputs ?? []).map((port, i) => {
         const portDef = def.inputs[i];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
+         
         return getInputValue(port.id, port.type, port.value ?? portDef.defaultValue ?? 0, connections, outputVarMap);
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+       
       const result = tslFn(...args);
       const outPorts = node.outputs ?? [];
       if (outPorts.length === 1) {
         outputVarMap.set(outPorts[0].id, result);
       } else {
         for (let i = 0; i < outPorts.length; i++) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+           
           outputVarMap.set(outPorts[i].id, result[i]);
         }
       }
@@ -177,10 +177,10 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
         const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
         const conn = connections.find(c => c.to === inputPort.id);
         if (conn) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+           
           const sourceValue = outputVarMap.get(conn.from);
           if (sourceValue !== undefined) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (material as any)[catalogPortId] = sourceValue;
           }
         }

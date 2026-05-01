@@ -290,7 +290,7 @@ describe('GraphCanvas', () => {
     it('calls onNodesChange when value edited', () => {
       const onNodesChange = vi.fn();
       const onInteractionEnd = vi.fn();
-      const { container } = render(
+      render(
         wrap(
           <GraphCanvas
             schema={makeSchema()}

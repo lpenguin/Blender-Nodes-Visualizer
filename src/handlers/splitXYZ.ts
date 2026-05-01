@@ -19,21 +19,21 @@ export const SplitXYZPlugin: TSLNodePlugin = {
   },
   build(ctx: NodeBuildContext): void {
     const inputPort = ctx.node.inputs?.[0];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+     
     const inputValue = inputPort !== undefined
       ? ctx.getInputValue(inputPort.id, inputPort.type, null)
       : ctx.formatDefault('vec3', null);
     const outPorts = ctx.node.outputs ?? [];
     if (outPorts.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+       
       ctx.outputVarMap.set(outPorts[0].id, inputValue.x);
     }
     if (outPorts.length > 1) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+       
       ctx.outputVarMap.set(outPorts[1].id, inputValue.y);
     }
     if (outPorts.length > 2) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+       
       ctx.outputVarMap.set(outPorts[2].id, inputValue.z);
     }
   },

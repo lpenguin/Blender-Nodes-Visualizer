@@ -216,7 +216,7 @@ describe('NodeWidget', () => {
       const node = makeNode({
         properties: [{ id: 'prop1', name: 'My Prop', type: 'float', value: 1.0 }],
       });
-      const { container } = render(wrap(<NodeWidget data={node} />));
+      render(wrap(<NodeWidget data={node} />));
       const propLabel = screen.getByText('My Prop');
       expect(propLabel.className).toContain('italic');
     });
