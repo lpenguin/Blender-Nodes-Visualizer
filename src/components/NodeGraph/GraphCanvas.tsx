@@ -3,7 +3,8 @@ import { GraphSchema, ViewportState, NodeData, ConnectionData, DataType } from '
 import { NodeWidget } from './NodeWidget';
 import { ConnectionLine } from './ConnectionLine';
 import { calculateNodeContentSize } from '../../utils';
-import { usePortPositions, PortPositionMap } from '../../hooks/usePortPositions';
+import { usePortPositions } from '../../hooks/usePortPositions';
+import { TSLValue } from '../../handlers';
 
 interface GraphCanvasProps {
   schema: GraphSchema;
@@ -244,7 +245,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     };
   };
 
-  const handleInputValueChange = (nodeId: string, portId: string, value: any) => {
+  const handleInputValueChange = (nodeId: string, portId: string, value: TSLValue) => {
     const updatedNodes = schemaRef.current.nodes.map((node) => {
       if (node.id !== nodeId) return node;
 
@@ -264,6 +265,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
   // --- Handlers ---
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    containerRef.current?.focus();
     // Capture pointer to track movements outside div if needed (standard for drag)
     containerRef.current?.setPointerCapture(e.pointerId);
     activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
