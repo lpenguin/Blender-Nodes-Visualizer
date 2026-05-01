@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, FileJson, PlusSquare, Code2 } from 'lucide-react';
+import { X, FileJson, PlusSquare, Code2, Box } from 'lucide-react';
 
 interface ToolbarProps {
   onToggleEditor: () => void;
@@ -9,6 +9,8 @@ interface ToolbarProps {
   showNodePicker: boolean;
   onToggleTSLCode: () => void;
   showTSLCode: boolean;
+  onTogglePreview: () => void;
+  showPreview: boolean;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
@@ -19,6 +21,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   showNodePicker,
   onToggleTSLCode,
   showTSLCode,
+  onTogglePreview,
+  showPreview,
 }) => {
   return (
     <div className="absolute top-0 left-0 w-full h-14 bg-neutral-900/80 backdrop-blur-md border-b border-neutral-800 flex items-center justify-between px-4 z-50">
@@ -47,6 +51,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             Invalid JSON
           </span>
         )}
+
+        {/* Preview */}
+        <button
+          onClick={onTogglePreview}
+          className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            showPreview
+              ? 'bg-purple-700 hover:bg-purple-600 text-white'
+              : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-200'
+          }`}
+          style={{ minHeight: '36px' }}
+          title="Shader Preview"
+        >
+          <Box size={16} />
+          <span className="hidden sm:inline">{showPreview ? 'Close Preview' : 'Preview'}</span>
+        </button>
 
         {/* Add Node */}
         <button

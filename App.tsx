@@ -5,6 +5,7 @@ import { JsonEditor } from './components/UI/JsonEditor';
 import { ToastProvider } from './components/UI/Toast';
 import { NodePicker } from './components/UI/NodePicker';
 import { TSLCodePanel } from './components/UI/TSLCodePanel';
+import { ShaderPreview } from './components/UI/ShaderPreview';
 import { applyConnectionState, parseGraphJSON } from './utils';
 import { exportTSL } from './tslExport';
 import { DEFAULT_JSON_EXAMPLE } from './constants';
@@ -19,6 +20,7 @@ function App() {
   const [showNodePicker, setShowNodePicker] = useState<boolean>(false);
   const [showTSLCode, setShowTSLCode] = useState<boolean>(false);
   const [tslCode, setTslCode] = useState<string>('');
+  const [showPreview, setShowPreview] = useState<boolean>(window.innerWidth > 768);
 
   // Parse JSON whenever input changes
   useEffect(() => {
@@ -125,52 +127,62 @@ function App() {
           showNodePicker={showNodePicker}
           onToggleTSLCode={handleToggleTSLCode}
           showTSLCode={showTSLCode}
+          onTogglePreview={() => setShowPreview(!showPreview)}
+          showPreview={showPreview}
         />
 
-        <div className="flex-1 relative">
-          {/* Canvas Area */}
-          <div className="absolute inset-0 z-0">
-            {schema ? (
-                <GraphCanvas
-                  schema={schema}
-                  onNodesChange={handleNodesChange}
-                  onConnectionsChange={handleConnectionsChange}
-                  onInteractionEnd={handleInteractionEnd}
-                />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-neutral-600 flex-col gap-4">
-                <p>No valid graph data.</p>
+        <div className="flex-1 flex min-h-0">
+          <div className="flex-1 relative min-w-0">
+            {/* Canvas Area */}
+            <div className="absolute inset-0 z-0">
+              {schema ? (
+                  <GraphCanvas
+                    schema={schema}
+                    onNodesChange={handleNodesChange}
+                    onConnectionsChange={handleConnectionsChange}
+                    onInteractionEnd={handleInteractionEnd}
+                  />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-neutral-600 flex-col gap-4">
+                  <p>No valid graph data.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Node Picker Overlay */}
+            <NodePicker
+              isOpen={showNodePicker}
+              onClose={() => setShowNodePicker(false)}
+              onAddNode={handleAddNode}
+            />
+
+            {/* TSL Code Panel Overlay */}
+            <TSLCodePanel
+              isOpen={showTSLCode}
+              code={tslCode}
+              onClose={() => setShowTSLCode(false)}
+            />
+
+            {/* JSON Editor Overlay */}
+            <JsonEditor
+              value={jsonInput}
+              onChange={setJsonInput}
+              isOpen={showEditor}
+            />
+
+            {/* Error Toast */}
+            {parseError && (
+              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-red-900/90 text-red-100 px-4 py-2 rounded-lg shadow-lg text-sm border border-red-700 z-50 max-w-[90vw]">
+                Error: {parseError}
               </div>
             )}
           </div>
 
-          {/* Node Picker Overlay */}
-          <NodePicker
-            isOpen={showNodePicker}
-            onClose={() => setShowNodePicker(false)}
-            onAddNode={handleAddNode}
+          <ShaderPreview
+            schema={schema}
+            isOpen={showPreview}
+            onClose={() => setShowPreview(false)}
           />
-
-          {/* TSL Code Panel Overlay */}
-          <TSLCodePanel
-            isOpen={showTSLCode}
-            code={tslCode}
-            onClose={() => setShowTSLCode(false)}
-          />
-
-          {/* JSON Editor Overlay */}
-          <JsonEditor
-            value={jsonInput}
-            onChange={setJsonInput}
-            isOpen={showEditor}
-          />
-
-          {/* Error Toast */}
-          {parseError && (
-            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-red-900/90 text-red-100 px-4 py-2 rounded-lg shadow-lg text-sm border border-red-700 z-50 max-w-[90vw]">
-              Error: {parseError}
-            </div>
-          )}
         </div>
       </div>
     </ToastProvider>
