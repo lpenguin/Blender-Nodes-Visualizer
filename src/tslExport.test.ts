@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import { exportTSL } from './tslExport';
-import { GraphSchema, NodeData, ConnectionData } from './types';
+import { GraphSchema, NodeData } from './types';
 
 function makeNode(overrides: Partial<NodeData> & { id: string; type: string }): NodeData {
   return {
@@ -1020,7 +1020,7 @@ describe('exportTSL', () => {
       const result = exportTSL(schema);
       const importLine = result.split('\n').find(l => l.includes('from') && l.includes("'three/tsl'"));
       expect(importLine).toBeDefined();
-      const fns = importLine!.match(/\{(.+)\}/)?.[1].split(',').map(s => s.trim());
+      const fns = (/\{(.+)\}/.exec((importLine!)))?.[1].split(',').map(s => s.trim());
       expect(fns).toBeDefined();
       expect(new Set(fns).size).toBe(fns!.length);
     });

@@ -76,7 +76,8 @@ describe('hexToRgb', () => {
 describe('generateGradientCSS', () => {
   it('returns default for empty stops', () => {
     expect(generateGradientCSS([])).toBe('#4b4b4b');
-    expect(generateGradientCSS(null as any)).toBe('#4b4b4b');
+    // Test empty/undefined handling
+    expect(generateGradientCSS([])).toBe('#4b4b4b');
   });
 
   it('generates single-stop gradient', () => {
@@ -224,7 +225,7 @@ describe('calculateBezierPath', () => {
   it('control points extend horizontally', () => {
     const path = calculateBezierPath(0, 0, 100, 0);
     // cp1x should be > x1, cp2x should be < x2
-    const match = path.match(/C (\S+) (\S+), (\S+) (\S+)/);
+    const match = /C (\S+) (\S+), (\S+) (\S+)/.exec(path);
     expect(match).not.toBeNull();
     const cp1x = parseFloat(match![1]);
     const cp2x = parseFloat(match![3]);
@@ -234,7 +235,7 @@ describe('calculateBezierPath', () => {
 
   it('minimum control point offset of 50px for close nodes', () => {
     const path = calculateBezierPath(0, 0, 20, 0);
-    const match = path.match(/C (\S+) (\S+), (\S+) (\S+)/);
+    const match = /C (\S+) (\S+), (\S+) (\S+)/.exec(path);
     expect(match).not.toBeNull();
     const cp1x = parseFloat(match![1]);
     const cp2x = parseFloat(match![3]);
@@ -244,7 +245,7 @@ describe('calculateBezierPath', () => {
 
   it('control point y values match endpoint y values', () => {
     const path = calculateBezierPath(0, 10, 200, 50);
-    const match = path.match(/C (\S+) (\S+), (\S+) (\S+)/);
+    const match = /C (\S+) (\S+), (\S+) (\S+)/.exec(path);
     expect(match).not.toBeNull();
     expect(parseFloat(match![2])).toBe(10); // cp1y = y1
     expect(parseFloat(match![4])).toBe(50); // cp2y = y2

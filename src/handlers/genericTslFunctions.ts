@@ -622,4 +622,341 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
       { id: 'out', name: 'Color', type: 'color' },
     ],
   },
+
+  // === Noise: Cell Noise (float output) ===
+  {
+    type: 'tsl:CellNoiseFloat',
+    name: 'Cell Noise (Float)',
+    category: 'Noise',
+    description: 'Cell/Voronoi noise returning a float from a float input.',
+    tslFn: 'mx_cell_noise_float',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'float', defaultValue: 0.0 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
+  {
+    type: 'tsl:CellNoiseFloat2D',
+    name: 'Cell Noise 2D (Float)',
+    category: 'Noise',
+    description: 'Cell/Voronoi noise returning a float from a vec2 input.',
+    tslFn: 'mx_cell_noise_float',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec2', defaultValue: [0, 0] },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
+  {
+    type: 'tsl:CellNoiseFloat3D',
+    name: 'Cell Noise 3D (Float)',
+    category: 'Noise',
+    description: 'Cell/Voronoi noise returning a float from a vec3 input.',
+    tslFn: 'mx_cell_noise_float',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
+  {
+    type: 'tsl:CellNoiseFloat4D',
+    name: 'Cell Noise 4D (Float)',
+    category: 'Noise',
+    description: 'Cell/Voronoi noise returning a float from a vec4 input.',
+    tslFn: 'mx_cell_noise_float',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec4', defaultValue: [0, 0, 0, 1] },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
+
+  // === Noise: Worley Noise (float output) ===
+  {
+    type: 'tsl:WorleyNoiseFloat2D',
+    name: 'Worley Noise 2D (Float)',
+    category: 'Noise',
+    description: 'Worley noise returning a float from a vec2 input.',
+    tslFn: 'mx_worley_noise_float',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec2', defaultValue: [0, 0] },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
+  {
+    type: 'tsl:WorleyNoiseFloat3D',
+    name: 'Worley Noise 3D (Float)',
+    category: 'Noise',
+    description: 'Worley noise returning a float from a vec3 input.',
+    tslFn: 'mx_worley_noise_float',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
+
+  // === Noise: Worley Noise (vec2 output) ===
+  {
+    type: 'tsl:WorleyNoiseVec22D',
+    name: 'Worley Noise 2D (Vec2)',
+    category: 'Noise',
+    description: 'Worley noise returning a vec2 (F1, F2) from a vec2 input.',
+    tslFn: 'mx_worley_noise_vec2',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec2', defaultValue: [0, 0] },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Vec2', type: 'vec2' },
+    ],
+  },
+  {
+    type: 'tsl:WorleyNoiseVec23D',
+    name: 'Worley Noise 3D (Vec2)',
+    category: 'Noise',
+    description: 'Worley noise returning a vec2 (F1, F2) from a vec3 input.',
+    tslFn: 'mx_worley_noise_vec2',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Vec2', type: 'vec2' },
+    ],
+  },
+
+  // === Noise: Worley Noise (vec3 output) ===
+  {
+    type: 'tsl:WorleyNoiseVec32D',
+    name: 'Worley Noise 2D (Vec3)',
+    category: 'Noise',
+    description: 'Worley noise returning a vec3 (F1, F2, F3) from a vec2 input.',
+    tslFn: 'mx_worley_noise_vec3',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec2', defaultValue: [0, 0] },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Vec3', type: 'vec3' },
+    ],
+  },
+  {
+    type: 'tsl:WorleyNoiseVec33D',
+    name: 'Worley Noise 3D (Vec3)',
+    category: 'Noise',
+    description: 'Worley noise returning a vec3 (F1, F2, F3) from a vec3 input.',
+    tslFn: 'mx_worley_noise_vec3',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Vec3', type: 'vec3' },
+    ],
+  },
+
+  // === Noise: Fractal Noise ===
+  {
+    type: 'tsl:FractalNoiseFloat',
+    name: 'Fractal Noise (Float)',
+    category: 'Noise',
+    description: 'Fractal Perlin noise returning a float.',
+    tslFn: 'mx_fractal_noise_float',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
+  {
+    type: 'tsl:FractalNoiseVec2',
+    name: 'Fractal Noise (Vec2)',
+    category: 'Noise',
+    description: 'Fractal Perlin noise returning a vec2.',
+    tslFn: 'mx_fractal_noise_vec2',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Vec2', type: 'vec2' },
+    ],
+  },
+  {
+    type: 'tsl:FractalNoiseVec3',
+    name: 'Fractal Noise (Vec3)',
+    category: 'Noise',
+    description: 'Fractal Perlin noise returning a vec3.',
+    tslFn: 'mx_fractal_noise_vec3',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Vec3', type: 'vec3' },
+    ],
+  },
+  {
+    type: 'tsl:FractalNoiseVec4',
+    name: 'Fractal Noise (Vec4)',
+    category: 'Noise',
+    description: 'Fractal Perlin noise returning a vec4.',
+    tslFn: 'mx_fractal_noise_vec4',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Vec4', type: 'vec4' },
+    ],
+  },
+
+  // === Noise: Generic MX Noise ===
+  {
+    type: 'tsl:MXNoiseFloat',
+    name: 'MX Noise (Float)',
+    category: 'Noise',
+    description: 'Generic MaterialX noise returning a float.',
+    tslFn: 'mx_noise_float',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
+  {
+    type: 'tsl:MXNoiseVec3',
+    name: 'MX Noise (Vec3)',
+    category: 'Noise',
+    description: 'Generic MaterialX noise returning a vec3.',
+    tslFn: 'mx_noise_vec3',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+    ],
+    outputs: [
+      { id: 'out', name: 'Vec3', type: 'vec3' },
+    ],
+  },
+  {
+    type: 'tsl:MXNoiseVec4',
+    name: 'MX Noise (Vec4)',
+    category: 'Noise',
+    description: 'Generic MaterialX noise returning a vec4.',
+    tslFn: 'mx_noise_vec4',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+    ],
+    outputs: [
+      { id: 'out', name: 'Vec4', type: 'vec4' },
+    ],
+  },
+
+  // === Noise: Unified Noise ===
+  {
+    type: 'tsl:UnifiedNoise2D',
+    name: 'Unified Noise 2D',
+    category: 'Noise',
+    description: 'Unified 2D noise with selectable type (Perlin=0, Cell=1, Worley=2, Fractal=3).',
+    tslFn: 'mx_unifiednoise2d',
+    inputs: [
+      { id: 'noiseType', name: 'Type', type: 'float', defaultValue: 0.0 },
+      { id: 'texcoord', name: 'Texcoord', type: 'vec2', defaultValue: [0, 0] },
+      { id: 'freq', name: 'Frequency', type: 'vec2', defaultValue: [1, 1] },
+      { id: 'offset', name: 'Offset', type: 'vec2', defaultValue: [0, 0] },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'outmin', name: 'Out Min', type: 'float', defaultValue: -1.0 },
+      { id: 'outmax', name: 'Out Max', type: 'float', defaultValue: 1.0 },
+      { id: 'clampoutput', name: 'Clamp', type: 'float', defaultValue: 0.0 },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
+  {
+    type: 'tsl:UnifiedNoise3D',
+    name: 'Unified Noise 3D',
+    category: 'Noise',
+    description: 'Unified 3D noise with selectable type (Perlin=0, Cell=1, Worley=2, Fractal=3).',
+    tslFn: 'mx_unifiednoise3d',
+    inputs: [
+      { id: 'noiseType', name: 'Type', type: 'float', defaultValue: 0.0 },
+      { id: 'position', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+      { id: 'freq', name: 'Frequency', type: 'vec3', defaultValue: [1, 1, 1] },
+      { id: 'offset', name: 'Offset', type: 'vec3', defaultValue: [0, 0, 0] },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'outmin', name: 'Out Min', type: 'float', defaultValue: -1.0 },
+      { id: 'outmax', name: 'Out Max', type: 'float', defaultValue: 1.0 },
+      { id: 'clampoutput', name: 'Clamp', type: 'float', defaultValue: 0.0 },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
+
+  // === Noise: Tri Noise 3D ===
+  {
+    type: 'tsl:TriNoise3D',
+    name: 'Tri Noise 3D',
+    category: 'Noise',
+    description: 'Triangular 3D noise with animated speed.',
+    tslFn: 'triNoise3D',
+    inputs: [
+      { id: 'position', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
+      { id: 'speed', name: 'Speed', type: 'float', defaultValue: 1.0 },
+      { id: 'time', name: 'Time', type: 'float', defaultValue: 0.0 },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
+
+  // === Noise: Interleaved Gradient Noise ===
+  {
+    type: 'tsl:InterleavedGradientNoise',
+    name: 'Interleaved Gradient Noise',
+    category: 'Noise',
+    description: 'Interleaved gradient noise for dithering (vec2 input).',
+    tslFn: 'interleavedGradientNoise',
+    inputs: [
+      { id: 'p', name: 'Position', type: 'vec2', defaultValue: [0, 0] },
+    ],
+    outputs: [
+      { id: 'out', name: 'Float', type: 'float' },
+    ],
+  },
 ];

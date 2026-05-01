@@ -12,7 +12,7 @@ import { DEFAULT_JSON_EXAMPLE } from './constants';
 import { GraphSchema, NodeData, ConnectionData } from './types';
 import { TSLNodeDef } from './tslNodes';
 
-function App() {
+function App(): React.ReactElement {
   const [jsonInput, setJsonInput] = useState<string>(DEFAULT_JSON_EXAMPLE);
   const [schema, setSchema] = useState<GraphSchema | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -24,19 +24,19 @@ function App() {
   const [previewWidth, setPreviewWidth] = useState<number>(300);
   const isResizingRef = useRef(false);
 
-  const handleResizeStart = (e: React.PointerEvent) => {
+  const handleResizeStart = (e: React.PointerEvent): void => {
     isResizingRef.current = true;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     e.preventDefault();
   };
 
-  const handleResizeMove = (e: React.PointerEvent) => {
+  const handleResizeMove = (e: React.PointerEvent): void => {
     if (!isResizingRef.current) return;
     const newWidth = Math.min(800, Math.max(200, window.innerWidth - e.clientX));
     setPreviewWidth(newWidth);
   };
 
-  const handleResizeEnd = (e: React.PointerEvent) => {
+  const handleResizeEnd = (e: React.PointerEvent): void => {
     isResizingRef.current = false;
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   };
@@ -65,19 +65,19 @@ function App() {
     }
   }, []);
 
-  const handleNodesChange = (updatedNodes: NodeData[]) => {
+  const handleNodesChange = (updatedNodes: NodeData[]): void => {
     if (!schema) return;
     const newSchema = applyConnectionState({ ...schema, nodes: updatedNodes });
     setSchema(newSchema);
   };
 
-  const handleConnectionsChange = (updatedConnections: ConnectionData[]) => {
+  const handleConnectionsChange = (updatedConnections: ConnectionData[]): void => {
     if (!schema) return;
     const newSchema = applyConnectionState({ ...schema, connections: updatedConnections });
     setSchema(newSchema);
   };
 
-  const handleInteractionEnd = (nextSchema?: GraphSchema) => {
+  const handleInteractionEnd = (nextSchema?: GraphSchema): void => {
     const schemaToPersist = nextSchema ? applyConnectionState(nextSchema) : schema;
     if (!schemaToPersist) return;
     setJsonInput(JSON.stringify(schemaToPersist, null, 2));
@@ -97,7 +97,7 @@ function App() {
     let id = baseId;
     let counter = 2;
     while (takenIds.has(id)) {
-      id = `${baseId}_${counter++}`;
+      id = `${baseId}_${String(counter++)}`;
     }
 
     const newNode: NodeData = {
@@ -128,7 +128,7 @@ function App() {
   }, [schema]);
 
   // Generate TSL code and open the panel
-  const handleToggleTSLCode = () => {
+  const handleToggleTSLCode = (): void => {
     if (!showTSLCode && schema) {
       setTslCode(exportTSL(schema));
     }
@@ -171,14 +171,14 @@ function App() {
     <ToastProvider>
       <div className="w-screen h-screen flex flex-col bg-neutral-900 overflow-hidden text-neutral-200 font-sans">
         <Toolbar
-          onToggleEditor={() => setShowEditor(!showEditor)}
+          onToggleEditor={() => { setShowEditor(!showEditor); }}
           showEditor={showEditor}
           hasError={!!parseError}
-          onToggleNodePicker={() => setShowNodePicker(!showNodePicker)}
+          onToggleNodePicker={() => { setShowNodePicker(!showNodePicker); }}
           showNodePicker={showNodePicker}
           onToggleTSLCode={handleToggleTSLCode}
           showTSLCode={showTSLCode}
-          onTogglePreview={() => setShowPreview(!showPreview)}
+          onTogglePreview={() => { setShowPreview(!showPreview); }}
           showPreview={showPreview}
         />
 
@@ -204,7 +204,7 @@ function App() {
             {/* Node Picker Overlay */}
             <NodePicker
               isOpen={showNodePicker}
-              onClose={() => setShowNodePicker(false)}
+              onClose={() => { setShowNodePicker(false); }}
               onAddNode={handleAddNode}
             />
 
@@ -212,7 +212,7 @@ function App() {
             <TSLCodePanel
               isOpen={showTSLCode}
               code={tslCode}
-              onClose={() => setShowTSLCode(false)}
+              onClose={() => { setShowTSLCode(false); }}
             />
 
             {/* JSON Editor Overlay */}
@@ -241,7 +241,7 @@ function App() {
               <ShaderPreview
                 schema={schema}
                 isOpen={showPreview}
-                onClose={() => setShowPreview(false)}
+                onClose={() => { setShowPreview(false); }}
                 width={previewWidth}
               />
             </>

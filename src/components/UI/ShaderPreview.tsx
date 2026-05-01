@@ -14,7 +14,7 @@ function createHorizontalGrid(size: number, mainStep: number, subStep: number): 
   const mainColor = new THREE.Color(0x888888);
   const subColor = new THREE.Color(0x333333);
 
-  const addLine = (x1: number, z1: number, x2: number, z2: number, c: THREE.Color) => {
+  const addLine = (x1: number, z1: number, x2: number, z2: number, c: THREE.Color): void => {
     positions.push(x1, 0, z1, x2, 0, z2);
     colors.push(c.r, c.g, c.b, c.r, c.g, c.b);
   };
@@ -59,7 +59,7 @@ export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, on
     aliveRef.current = true;
     let renderer: WebGPURenderer | null = null;
 
-    (async () => {
+    void (async () => {
       try {
         const width = container.clientWidth || 300;
         const height = container.clientHeight || 400;
@@ -118,20 +118,20 @@ export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, on
         controlsRef.current = controls;
         setError(null);
 
-        const animate = async () => {
+        const animate = (): void => {
           if (!aliveRef.current || !renderer) return;
           frameRef.current = requestAnimationFrame(animate);
           controls.update();
-          await renderer.render(scene, camera);
+          renderer.render(scene, camera);
         };
         animate();
-      } catch (err: any) {
-        if (aliveRef.current) setError(err?.message || 'WebGPU init failed');
+      } catch (err: unknown) {
+        if (aliveRef.current) setError((err as Error).message ?? 'WebGPU init failed');
       }
     })();
 
-    const onResize = () => {
-      if (!renderer || !container || !cameraRef.current) return;
+    const onResize = (): void => {
+      if (renderer === null || cameraRef.current === null) return;
       const w = container.clientWidth;
       const h = container.clientHeight;
       if (w > 0 && h > 0) {
@@ -178,7 +178,7 @@ export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, on
     }
   }, [schema]);
 
-  const handleResetRotation = () => {
+  const handleResetRotation = (): void => {
     if (meshRef.current) {
       meshRef.current.rotation.set(0, 0, 0);
     }

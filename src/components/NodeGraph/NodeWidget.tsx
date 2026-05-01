@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NodeData, NodePort, NodeProperty } from '../../types';
-import { getPortColor, isValidVector3, isValidColor, isValidGradient, generateGradientCSS, rgbToHex, isValidRotation, hexToRgb } from '../../utils';
-import { AlertTriangle, HelpCircle } from 'lucide-react';
+import { getPortColor, isValidVector3, isValidColor, isValidGradient, generateGradientCSS, rgbToHex, isValidRotation, hexToRgb, GradientStop } from '../../utils';
 import { useToast } from '../UI/Toast';
 import { TSL_NODE_BY_TYPE } from '../../tslNodes';
+import { TSLValue } from '../../handlers';
 
 interface NodeWidgetProps {
   data: NodeData;
-  onInputValueChange?: (nodeId: string, portId: string, value: any) => void;
+  onInputValueChange?: (nodeId: string, portId: string, value: TSLValue) => void;
   isSelected?: boolean;
   activePortId?: string | null;
   hoveredPortId?: string | null;
@@ -16,7 +16,7 @@ interface NodeWidgetProps {
 
 type PortHighlightState = 'idle' | 'active' | 'hover-valid' | 'hover-invalid';
 
-const PortDot: React.FC<{ type: string; isConnected?: boolean; highlightState?: PortHighlightState }> = ({ type, isConnected, highlightState = 'idle' }) => {
+const PortDot: React.FC<{ type: string; isConnected?: boolean; highlightState?: PortHighlightState }> = ({ type, isConnected: _isConnected, highlightState = 'idle' }) => {
   const color = getPortColor(type);
   const highlightClass =
     highlightState === 'active'
@@ -44,23 +44,23 @@ const INT_PARTIAL_PATTERN = /^[+-]?\d*$/;
 const DRAG_PIXELS_PER_STEP = 6.5;
 const DRAG_ACTIVATION_DISTANCE = 4;
 
-const normalizeNumericValue = (value: any, integer: boolean) => {
+const normalizeNumericValue = (value: TSLValue, integer: boolean): number => {
     const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value ?? ''));
     if (!Number.isFinite(parsed)) return 0;
     return integer ? Math.round(parsed) : Number(parsed.toFixed(4));
 };
 
-const formatNumericValue = (value: number, integer: boolean) => {
+const formatNumericValue = (value: number, integer: boolean): string => {
     if (integer) return String(Math.round(value));
     const normalized = Number(value.toFixed(4));
     return Object.is(normalized, -0) ? '0' : normalized.toString();
 };
 
-const roundDraggedFloat = (value: number) => Number(value.toFixed(4));
+const roundDraggedFloat = (value: number): number => Number(value.toFixed(4));
 
 const NumericValueEditor: React.FC<{
     label?: string;
-    value: any;
+    value: TSLValue;
     onChange: (value: number) => void;
     integer?: boolean;
 }> = ({ label, value, onChange, integer = false }) => {
@@ -90,9 +90,9 @@ const NumericValueEditor: React.FC<{
     }, [isEditing]);
 
     useEffect(() => {
-        const handlePointerMove = (event: PointerEvent) => {
+        const handlePointerMove = (event: PointerEvent): void => {
             const dragState = dragStateRef.current;
-            if (!dragState || dragState.pointerId !== event.pointerId) return;
+            if (dragState?.pointerId !== event.pointerId) return;
 
             const dx = event.clientX - dragState.startX;
             if (Math.abs(dx) >= DRAG_ACTIVATION_DISTANCE) {
@@ -110,9 +110,9 @@ const NumericValueEditor: React.FC<{
             }
         };
 
-        const handlePointerUp = (event: PointerEvent) => {
+        const handlePointerUp = (event: PointerEvent): void => {
             const dragState = dragStateRef.current;
-            if (!dragState || dragState.pointerId !== event.pointerId) return;
+            if (dragState?.pointerId !== event.pointerId) return;
 
             const shouldEdit = !dragState.moved;
             dragStateRef.current = null;
@@ -133,7 +133,7 @@ const NumericValueEditor: React.FC<{
         };
     }, [integer]);
 
-    const commitDraftValue = () => {
+    const commitDraftValue = (): void => {
         const trimmed = draftValue.trim();
         const isValid = integer ? INT_PATTERN.test(trimmed) : FLOAT_PATTERN.test(trimmed);
 
@@ -156,7 +156,7 @@ const NumericValueEditor: React.FC<{
         setIsEditing(false);
     };
 
-    const nudgeValue = (direction: -1 | 1) => {
+    const nudgeValue = (direction: -1 | 1): void => {
         const nextValue = integer
             ? Math.round(normalizedValue + (direction * 1))
             : roundDraggedFloat(normalizedValue + (direction * 0.1));
@@ -164,11 +164,11 @@ const NumericValueEditor: React.FC<{
     };
 
     return (
-        <div className="flex h-7 w-full items-stretch overflow-hidden rounded bg-neutral-600/95 shadow-sm pointer-events-auto" onPointerDown={(event) => event.stopPropagation()}>
+        <div className="flex h-7 w-full items-stretch overflow-hidden rounded bg-neutral-600/95 shadow-sm pointer-events-auto" onPointerDown={(event) => { event.stopPropagation(); }}>
             <button
                 type="button"
                 className="flex h-full w-6 shrink-0 items-center justify-center rounded-l rounded-r-none bg-neutral-700 text-[11px] text-neutral-200 transition-colors hover:bg-neutral-800"
-                onClick={() => nudgeValue(-1)}
+                onClick={() => { nudgeValue(-1); }}
             >
                 {'<'}
             </button>
@@ -196,7 +196,7 @@ const NumericValueEditor: React.FC<{
                             setIsEditing(false);
                         }
                     }}
-                    onPointerDown={(event) => event.stopPropagation()}
+                    onPointerDown={(event) => { event.stopPropagation(); }}
                 />
             ) : (
                 <button
@@ -221,7 +221,7 @@ const NumericValueEditor: React.FC<{
             <button
                 type="button"
                 className="flex h-full w-6 shrink-0 items-center justify-center rounded-r rounded-l-none bg-neutral-700 text-[11px] text-neutral-200 transition-colors hover:bg-neutral-800"
-                onClick={() => nudgeValue(1)}
+                onClick={() => { nudgeValue(1); }}
             >
                 {'>'}
             </button>
@@ -230,7 +230,7 @@ const NumericValueEditor: React.FC<{
 };
 
 const ColorValueEditor: React.FC<{
-    value: any;
+    value: number[];
     onChange: (value: number[]) => void;
 }> = ({ value, onChange }) => {
     const normalizedValue = isValidColor(value) ? value : [0, 0, 0];
@@ -241,7 +241,7 @@ const ColorValueEditor: React.FC<{
         setPreviewHex(currentHex);
     }, [currentHex]);
 
-    const updateColor = (hex: string) => {
+    const updateColor = (hex: string): void => {
         setPreviewHex(hex);
         const nextColor = hexToRgb(hex, typeof normalizedValue[3] === 'number' ? normalizedValue[3] : undefined);
         if (nextColor) {
@@ -250,27 +250,29 @@ const ColorValueEditor: React.FC<{
     };
 
     return (
-        <div className="relative h-6 w-[72px] overflow-hidden rounded bg-neutral-600/95 shadow-sm pointer-events-auto" onPointerDown={(event) => event.stopPropagation()}>
+        <div className="relative h-6 w-[72px] overflow-hidden rounded bg-neutral-600/95 shadow-sm pointer-events-auto" onPointerDown={(event) => { event.stopPropagation(); }}>
             <div className="pointer-events-none h-full w-full rounded" style={{ backgroundColor: previewHex }} />
             <input
                 type="color"
                 value={previewHex}
                 className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                onInput={(event) => updateColor(event.currentTarget.value)}
-                onChange={(event) => updateColor(event.currentTarget.value)}
-                onPointerDown={(event) => event.stopPropagation()}
+                onInput={(event) => { updateColor(event.currentTarget.value); }}
+                onChange={(event) => { updateColor(event.currentTarget.value); }}
+                onPointerDown={(event) => { event.stopPropagation(); }}
             />
         </div>
     );
 };
 
-const isExpandedInputWidget = (type: string) => type === 'gradient' || type === 'float_curve';
+const isExpandedInputWidget = (type: string): boolean => type === 'gradient' || type === 'float_curve';
 
-const isEmbeddedNumericInput = (type: string) => type === 'float' || type === 'int';
+const isEmbeddedNumericInput = (type: string): boolean => type === 'float' || type === 'int';
 
-const isInlineColorInput = (type: string) => type === 'color';
+const isInlineColorInput = (type: string): boolean => type === 'color';
 
-const FloatCurveDisplay: React.FC<{ value: any }> = ({ value }) => {
+interface FloatCurvePoint { x: number; y: number }
+
+const FloatCurveDisplay: React.FC<{ value: FloatCurvePoint[] }> = ({ value }) => {
     const { showToast } = useToast();
     const [selectedPointIndex, setSelectedPointIndex] = useState<number>(0);
 
@@ -281,27 +283,21 @@ const FloatCurveDisplay: React.FC<{ value: any }> = ({ value }) => {
         .filter(p => typeof p.x === 'number' && typeof p.y === 'number')
         .sort((a, b) => a.x - b.x);
 
-    const selectedPoint = points[selectedPointIndex] || points[0];
+    const selectedPoint = points[selectedPointIndex] ?? points[0];
 
-    const handleCopy = (text: string, e: React.MouseEvent) => {
+    const handleCopy = (text: string, e: React.MouseEvent): void => {
         e.stopPropagation();
-        navigator.clipboard.writeText(text);
+        void navigator.clipboard.writeText(text);
         showToast('Copied to clipboard');
     };
 
     // Generate Path
-    let pathD = "";
-    if (points.length > 0) {
-        pathD = `M ${points[0].x * 100} ${100 - (points[0].y * 100)}`;
-        for (let i = 1; i < points.length; i++) {
-             pathD += ` L ${points[i].x * 100} ${100 - (points[i].y * 100)}`;
-        }
-    } else {
-        pathD = "M 0 100 L 100 0";
-    }
+    const pathD = points.length > 0
+        ? points.reduce((d, p, i) => d + (i === 0 ? `M ${String(p.x * 100)} ${String(100 - (p.y * 100))}` : ` L ${String(p.x * 100)} ${String(100 - (p.y * 100))}`), "")
+        : "M 0 100 L 100 0";
 
     return (
-        <div className="w-full flex flex-col gap-1 pointer-events-auto mt-1" onPointerDown={e => e.stopPropagation()}>
+        <div className="w-full flex flex-col gap-1 pointer-events-auto mt-1" onPointerDown={e => { e.stopPropagation(); }}>
             <div className="w-full h-28 bg-[#222] border border-neutral-600 rounded relative select-none overflow-hidden">
                 {/* Grid Lines */}
                 <div className="absolute inset-0 opacity-20 pointer-events-none" 
@@ -320,8 +316,8 @@ const FloatCurveDisplay: React.FC<{ value: any }> = ({ value }) => {
                         className={`absolute w-[7px] h-[7px] rounded-full border border-neutral-900 cursor-pointer transition-all z-10 hover:scale-125
                             ${i === selectedPointIndex ? 'bg-white ring-1 ring-neutral-400 scale-125 z-20' : 'bg-[#6363C7]'}`}
                         style={{
-                            left: `${p.x * 100}%`,
-                            bottom: `${p.y * 100}%`,
+                            left: `${String(p.x * 100)}%`,
+                            bottom: `${String(p.y * 100)}%`,
                             transform: 'translate(-50%, 50%)' 
                         }}
                         onClick={(e) => {
@@ -334,11 +330,11 @@ const FloatCurveDisplay: React.FC<{ value: any }> = ({ value }) => {
 
             {/* Details Panel */}
              <div className="flex items-center gap-1 h-[20px] bg-neutral-900/50 rounded px-1 border border-neutral-700/50">
-                {selectedPoint ? (
+                 {selectedPoint !== undefined ? (
                     <>
                         <div 
                             className="flex items-center gap-1 px-1 hover:bg-neutral-700/50 rounded cursor-pointer group transition-colors min-w-0 flex-1"
-                            onClick={(e) => handleCopy(selectedPoint.x.toString(), e)}
+                            onClick={(e) => { handleCopy(selectedPoint.x.toString(), e); }}
                             title="Copy X position"
                         >
                             <span className="text-[9px] text-neutral-500 font-mono">X:</span>
@@ -347,7 +343,7 @@ const FloatCurveDisplay: React.FC<{ value: any }> = ({ value }) => {
                         <div className="w-[1px] h-[10px] bg-neutral-700 mx-1"/>
                         <div 
                             className="flex items-center gap-1 px-1 hover:bg-neutral-700/50 rounded cursor-pointer group transition-colors min-w-0 flex-1"
-                             onClick={(e) => handleCopy(selectedPoint.y.toString(), e)}
+                             onClick={(e) => { handleCopy(selectedPoint.y.toString(), e); }}
                              title="Copy Y value"
                         >
                              <span className="text-[9px] text-neutral-500 font-mono">Y:</span>
@@ -360,13 +356,13 @@ const FloatCurveDisplay: React.FC<{ value: any }> = ({ value }) => {
     )
 }
 
-const GradientDisplay: React.FC<{ value: any }> = ({ value }) => {
+const GradientDisplay: React.FC<{ value: GradientStop[] }> = ({ value }) => {
   const { showToast } = useToast();
   const [selectedStopIndex, setSelectedStopIndex] = useState<number>(0);
 
-  const handleCopy = (text: string, e: React.MouseEvent) => {
+  const handleCopy = (text: string, e: React.MouseEvent): void => {
     e.stopPropagation();
-    navigator.clipboard.writeText(text);
+    void navigator.clipboard.writeText(text);
     showToast('Copied to clipboard');
   };
 
@@ -375,14 +371,14 @@ const GradientDisplay: React.FC<{ value: any }> = ({ value }) => {
 
   if (!valid) return null;
 
-  const stops = value as Array<{ pos: number, color: number[] }>;
-  const selectedStop = stops[selectedStopIndex] || stops[0];
+  const stops = value as { pos: number, color: number[] }[];
+  const selectedStop = stops[selectedStopIndex] ?? stops[0];
   const selectedColorHex = rgbToHex(selectedStop.color);
 
   return (
     <div 
       className="w-full flex flex-col gap-1 pointer-events-auto mt-1"
-      onPointerDown={(e) => e.stopPropagation()} 
+      onPointerDown={(e) => { e.stopPropagation(); }} 
     >
       <div className="h-[16px] rounded border border-neutral-600 shadow-sm relative" style={{ background }}>
          {stops.map((stop, idx) => {
@@ -392,7 +388,7 @@ const GradientDisplay: React.FC<{ value: any }> = ({ value }) => {
                     key={idx}
                     onClick={(e) => { e.stopPropagation(); setSelectedStopIndex(idx); }}
                     className={`absolute top-0 w-0 h-full border-l-2 cursor-pointer hover:border-white transition-colors z-10 ${isSelected ? 'border-white z-20' : 'border-black/40'}`}
-                    style={{ left: `${Math.max(0, Math.min(1, stop.pos)) * 100}%` }}
+                    style={{ left: `${String(Math.max(0, Math.min(1, stop.pos)) * 100)}%` }}
                 >
                     <div className={`absolute -top-[4px] -left-[3px] w-0 h-0 border-l-[3px] border-r-[3px] border-t-[4px] border-l-transparent border-r-transparent ${isSelected ? 'border-t-white' : 'border-t-black/60'}`} />
                 </div>
@@ -403,7 +399,7 @@ const GradientDisplay: React.FC<{ value: any }> = ({ value }) => {
       <div className="flex items-center gap-1 h-[20px] bg-neutral-900/50 rounded px-1 border border-neutral-700/50">
          <div 
             className="flex items-center gap-1 px-1 hover:bg-neutral-700/50 rounded cursor-pointer group transition-colors"
-            onClick={(e) => handleCopy(selectedStop.pos.toString(), e)}
+            onClick={(e) => { handleCopy(selectedStop.pos.toString(), e); }}
             title="Click to copy position"
          >
              <span className="text-[9px] text-neutral-500 font-mono">Pos:</span>
@@ -414,7 +410,7 @@ const GradientDisplay: React.FC<{ value: any }> = ({ value }) => {
 
          <div 
             className="flex items-center gap-1 px-1 hover:bg-neutral-700/50 rounded cursor-pointer group flex-1 transition-colors"
-            onClick={(e) => handleCopy(selectedColorHex, e)}
+            onClick={(e) => { handleCopy(selectedColorHex, e); }}
             title="Click to copy color hex"
          >
              <div className="w-[8px] h-[8px] rounded-sm border border-neutral-600" style={{ backgroundColor: selectedColorHex }} />
@@ -425,12 +421,12 @@ const GradientDisplay: React.FC<{ value: any }> = ({ value }) => {
   );
 };
 
-const ValueWidget: React.FC<{ type: string; value: any; label?: string; onChange?: (value: any) => void }> = ({ type, value, label, onChange }) => {
+const ValueWidget: React.FC<{ type: string; value: TSLValue; label?: string; onChange?: (value: TSLValue) => void }> = ({ type, value, label, onChange }) => {
     const { showToast } = useToast();
-    const copy = (val: string) => {
-        navigator.clipboard.writeText(val);
+    const copy = (val: string): void => {
+        void navigator.clipboard.writeText(val);
         showToast("Copied");
-    }
+    };
 
     if (type === 'float') {
         if (onChange) {
@@ -441,7 +437,7 @@ const ValueWidget: React.FC<{ type: string; value: any; label?: string; onChange
         return (
             <div 
                 className="bg-neutral-700 px-2 py-0.5 rounded text-neutral-300 text-xs font-mono min-w-[40px] text-center border border-transparent ml-auto"
-                onPointerDown={e => e.stopPropagation()}
+                onPointerDown={e => { e.stopPropagation(); }}
             >
                 {formatNumericValue(num, false)}
             </div>
@@ -455,7 +451,7 @@ const ValueWidget: React.FC<{ type: string; value: any; label?: string; onChange
         return (
             <div 
                 className="bg-neutral-700 px-2 py-0.5 rounded text-neutral-300 text-xs font-mono min-w-[40px] text-center border border-transparent ml-auto"
-                onPointerDown={e => e.stopPropagation()}
+                onPointerDown={e => { e.stopPropagation(); }}
             >
                 {formatNumericValue(num, true)}
             </div>
@@ -463,16 +459,17 @@ const ValueWidget: React.FC<{ type: string; value: any; label?: string; onChange
     }
     if (type === 'vector3') {
         if (!isValidVector3(value)) return null;
+        const vec = value as number[];
         return (
             <div className="flex gap-1 ml-auto">
                 {['X', 'Y', 'Z'].map((axis, i) => (
                      <div 
                         key={axis} 
                         className="flex items-center justify-center bg-neutral-900/50 rounded px-1.5 h-[18px] min-w-[32px] cursor-pointer hover:bg-neutral-800 transition-colors"
-                        onPointerDown={e => e.stopPropagation()}
+                        onPointerDown={e => { e.stopPropagation(); }}
                         onClick={(e) => {
                             e.stopPropagation();
-                            copy(value[i].toString());
+                            copy(vec[i].toString());
                         }}
                         title={`Copy ${axis}`}
                      >
@@ -481,7 +478,7 @@ const ValueWidget: React.FC<{ type: string; value: any; label?: string; onChange
                              i===1 ? 'text-[#4ade80]' : // Green-400
                              'text-blue-400'
                          }`}>
-                             {value[i]?.toFixed(2)}
+                             {vec[i]?.toFixed(2)}
                          </span>
                      </div>
                 ))}
@@ -490,16 +487,17 @@ const ValueWidget: React.FC<{ type: string; value: any; label?: string; onChange
     }
     if (type === 'rotation') {
         if (!isValidRotation(value)) return null;
+        const rot = value as number[];
         return (
             <div className="flex gap-1 ml-auto">
                 {['X', 'Y', 'Z'].map((axis, i) => (
                      <div 
                         key={axis} 
                         className="flex items-center justify-center bg-neutral-900/50 rounded px-1.5 h-[18px] min-w-[32px] cursor-pointer hover:bg-neutral-800 transition-colors"
-                        onPointerDown={e => e.stopPropagation()}
+                        onPointerDown={e => { e.stopPropagation(); }}
                         onClick={(e) => {
                             e.stopPropagation();
-                            copy(value[i].toString());
+                            copy(rot[i].toString());
                         }}
                         title={`Copy ${axis} Rotation`}
                      >
@@ -508,7 +506,7 @@ const ValueWidget: React.FC<{ type: string; value: any; label?: string; onChange
                              i===1 ? 'text-[#4ade80]' : 
                              'text-blue-400'
                          }`}>
-                             {typeof value[i] === 'number' ? value[i].toFixed(1) : value[i]}°
+                             {typeof rot[i] === 'number' ? rot[i].toFixed(1) : rot[i]}°
                          </span>
                      </div>
                 ))}
@@ -517,24 +515,25 @@ const ValueWidget: React.FC<{ type: string; value: any; label?: string; onChange
     }
     if (type === 'color') {
         if (onChange) {
-            return <ColorValueEditor value={value} onChange={onChange} />;
+            return <ColorValueEditor value={value as number[]} onChange={onChange} />;
         }
         if (!isValidColor(value)) return null;
-        const bg = `rgb(${value[0] * 255}, ${value[1] * 255}, ${value[2] * 255})`;
+        const col = value as number[];
+        const bg = `rgb(${String(col[0] * 255)}, ${String(col[1] * 255)}, ${String(col[2] * 255)})`;
         return (
              <div 
                 className="w-[40px] h-[18px] rounded border border-neutral-600 shadow-sm ml-auto" 
                 style={{ backgroundColor: bg }} 
-                onPointerDown={e => e.stopPropagation()}
-                title={rgbToHex(value)}
+                onPointerDown={e => { e.stopPropagation(); }}
+                title={rgbToHex(col)}
              />
         );
     }
     if (type === 'string') {
         return <div className="ml-auto text-xs bg-black/20 px-1 rounded truncate max-w-[80px]">{String(value)}</div>
     }
-    if (type === 'gradient') return <GradientDisplay value={value} />;
-    if (type === 'float_curve') return <FloatCurveDisplay value={value} />;
+    if (type === 'gradient') return <GradientDisplay value={value as unknown as GradientStop[]} />;
+    if (type === 'float_curve') return <FloatCurveDisplay value={value as unknown as FloatCurvePoint[]} />;
     if (type === 'geometry') return null; // Geometry has no value widget
 
     return null;
@@ -548,7 +547,7 @@ const getPortHighlightState = (portId: string, activePortId?: string | null, hov
 
 const InputRow: React.FC<{
     port: NodePort;
-    onValueChange?: (portId: string, value: any) => void;
+    onValueChange?: (portId: string, value: TSLValue) => void;
     activePortId?: string | null;
     hoveredPortId?: string | null;
     hoveredPortValid?: boolean;
@@ -559,7 +558,7 @@ const InputRow: React.FC<{
     //    Hide Port: Show Label + Widget. No Dot.
     //    Show Port: Show Dot + Label + Widget.
 
-    const showDot = port.connected || (!port.connected && !port.hide_port);
+    const showDot = port.connected ?? !port.hide_port;
     const showWidget = !port.connected; 
     
     const isLargeWidget = isExpandedInputWidget(port.type);
@@ -586,24 +585,24 @@ const InputRow: React.FC<{
 
                   {showWidget && embedLabelInWidget && (
                       <div className="flex-1 pr-1">
-                          <ValueWidget type={port.type} value={port.value} label={port.name} onChange={onValueChange ? (value) => onValueChange(port.id, value) : undefined} />
+                          <ValueWidget type={port.type} value={port.value as TSLValue} label={port.name} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
                       </div>
                   )}
 
                   {showWidget && showInlineColorWidget && (
-                      <ValueWidget type={port.type} value={port.value} onChange={onValueChange ? (value) => onValueChange(port.id, value) : undefined} />
+                      <ValueWidget type={port.type} value={port.value as TSLValue} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
                   )}
 
                   {/* Inline Widget (if not connected and small) */}
                   {showWidget && !isLargeWidget && !embedLabelInWidget && !showInlineColorWidget && (
-                      <ValueWidget type={port.type} value={port.value} label={port.name} onChange={onValueChange ? (value) => onValueChange(port.id, value) : undefined} />
+                      <ValueWidget type={port.type} value={port.value as TSLValue} label={port.name} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
                   )}
               </div>
 
               {/* Block Widget (if not connected and large) */}
               {showWidget && isLargeWidget && (
                   <div className="pl-4 pr-1">
-                       <ValueWidget type={port.type} value={port.value} label={port.name} onChange={onValueChange ? (value) => onValueChange(port.id, value) : undefined} />
+                       <ValueWidget type={port.type} value={port.value as TSLValue} label={port.name} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
                   </div>
               )}
          </div>
@@ -641,15 +640,15 @@ const PropertyRow: React.FC<{ property: NodeProperty }> = ({ property }) => {
                  <span className="text-neutral-400 text-xs truncate select-none italic">{property.name}</span>
 
                  {/* Inline Widget (if small) */}
-                 {!isLargeWidget && (
-                     <ValueWidget type={property.type} value={property.value} />
-                 )}
-             </div>
+                  {!isLargeWidget && (
+                      <ValueWidget type={property.type} value={property.value as TSLValue} />
+                  )}
+              </div>
 
-             {/* Block Widget (if large) */}
-             {isLargeWidget && (
-                 <div className="pl-2 pr-1">
-                      <ValueWidget type={property.type} value={property.value} />
+              {/* Block Widget (if large) */}
+              {isLargeWidget && (
+                  <div className="pl-2 pr-1">
+                       <ValueWidget type={property.type} value={property.value as TSLValue} />
                  </div>
              )}
         </div>
@@ -748,7 +747,7 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, onInputValueChange
         {data.properties && data.properties.length > 0 && (
              <div className="flex flex-col gap-[4px] w-full border-b border-neutral-700/30 pb-1 mb-1">
                 {data.properties.map((prop, idx) => (
-                    <PropertyRow key={prop.id || `prop-${idx}`} property={prop} />
+                    <PropertyRow key={prop.id ?? `prop-${String(idx)}`} property={prop} />
                 ))}
             </div>
         )}
@@ -760,7 +759,7 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, onInputValueChange
                     <InputRow
                         key={port.id}
                         port={port}
-                        onValueChange={onInputValueChange ? (portId, value) => onInputValueChange(data.id, portId, value) : undefined}
+                        onValueChange={onInputValueChange ? (portId, value) => { onInputValueChange(data.id, portId, value); } : undefined}
                         activePortId={activePortId}
                         hoveredPortId={hoveredPortId}
                         hoveredPortValid={hoveredPortValid}

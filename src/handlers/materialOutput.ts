@@ -1,4 +1,4 @@
-import { TSLNodePlugin } from '../tslHandlerContext';
+import { TSLNodePlugin, NodeBuildContext, NodeExportContext } from '../tslHandlerContext';
 
 export const MaterialOutputPlugin: TSLNodePlugin = {
   type: 'tsl:MaterialOutput',
@@ -20,10 +20,10 @@ export const MaterialOutputPlugin: TSLNodePlugin = {
     ],
     outputs: [],
   },
-  build(ctx) {
+  build(ctx: NodeBuildContext): void {
     ctx.materialNodes.push(ctx.node);
   },
-  export(ctx) {
+  export(ctx: NodeExportContext): void {
     ctx.materialNodes.push(ctx.node);
   },
 };
@@ -49,10 +49,10 @@ export const PhysicalMaterialOutputPlugin: TSLNodePlugin = {
     ],
     outputs: [],
   },
-  build(ctx) {
+  build(ctx: NodeBuildContext): void {
     ctx.materialNodes.push(ctx.node);
   },
-  export(ctx) {
+  export(ctx: NodeExportContext): void {
     ctx.materialNodes.push(ctx.node);
   },
 };

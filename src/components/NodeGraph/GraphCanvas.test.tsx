@@ -1,9 +1,9 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'bun:test';
-import { render, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, vi } from 'bun:test';
+import { render, fireEvent } from '@testing-library/react';
 import { GraphCanvas } from './GraphCanvas';
 import { ToastProvider } from '../UI/Toast';
-import { GraphSchema, NodeData } from '../../types';
+import { GraphSchema } from '../../types';
 
 const wrap = (ui: React.ReactElement) => <ToastProvider>{ui}</ToastProvider>;
 

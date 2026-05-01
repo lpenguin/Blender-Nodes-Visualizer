@@ -1,5 +1,5 @@
 
-export type DataType = 'float' | 'vector3' | 'color' | 'string' | 'gradient' | 'float_curve' | 'geometry' | 'rotation' | string;
+export type DataType = string;
 
 export interface Position {
   x: number;
@@ -15,6 +15,7 @@ export interface NodePort {
   id: string;
   name: string;
   type: DataType;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value?: any;
   connected?: boolean;
   hide_port?: boolean;
@@ -24,6 +25,7 @@ export interface NodeProperty {
   id?: string;
   name: string;
   type: DataType;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value?: any;
 }
 

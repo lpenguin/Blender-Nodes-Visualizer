@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { registerPlugin, getPlugin, TSLNodePlugin, TSLNodeDef, NodeBuildContext, NodeExportContext } from './tslHandlerContext';
+import { registerPlugin, getPlugin, TSLNodePlugin, TSLNodeDef, NodeBuildContext, NodeExportContext, TSLValue } from './tslHandlerContext';
 import { TSL_NODE_CATALOG, TSL_NODE_BY_TYPE, TSL_CATEGORIES } from './handlers';
 import { NodeData, ConnectionData } from './types';
 
@@ -36,7 +36,7 @@ describe('plugin registry', () => {
   });
 
   it('can register a custom plugin and retrieve it', () => {
-    const testType = 'test:CustomNode_' + Date.now();
+    const testType = `test:CustomNode_${String(Date.now())}`;
     const testDef: TSLNodeDef = {
       type: testType,
       name: 'Test',
@@ -50,6 +50,7 @@ describe('plugin registry', () => {
       type: testType,
       def: testDef,
       build(ctx) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const out of ctx.node.outputs ?? []) ctx.outputVarMap.set(out.id, 42 as any);
       },
       export(ctx) {
@@ -153,6 +154,7 @@ describe('TSL_CATEGORIES', () => {
 
 describe('plugin build + export for each handler type', () => {
   function makeBuildCtx(node: NodeData, def: TSLNodeDef): NodeBuildContext {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const outputVarMap = new Map<string, any>();
     const materialNodes: NodeData[] = [];
     const connections: ConnectionData[] = [];
@@ -162,13 +164,13 @@ describe('plugin build + export for each handler type', () => {
       connections,
       outputVarMap,
       materialNodes,
-      getInputValue(portId, portType, defaultValue) {
+      getInputValue(_portId: string, _portType: string, defaultValue: TSLValue) {
         return defaultValue ?? 0;
       },
-      getInputRaw(portId, defaultValue) {
+      getInputRaw(_portId: string, defaultValue: TSLValue) {
         return defaultValue;
       },
-      formatDefault(type, value) {
+      formatDefault(_type: string, _value: TSLValue) {
         return 0;
       },
     };
@@ -190,10 +192,10 @@ describe('plugin build + export for each handler type', () => {
       lines,
       imports,
       materialNodes,
-      getInputExpression(portId, portType, defaultValue) {
+      getInputExpression(_portId: string, _portType: string, defaultValue: TSLValue) {
         return String(defaultValue ?? 0);
       },
-      formatDefaultValue(type, value) {
+      formatDefaultValue(_type: string, value: TSLValue) {
         return String(value ?? 0);
       },
       sanitizeId(id) {
@@ -215,7 +217,7 @@ describe('plugin build + export for each handler type', () => {
   for (const type of pluginTypes) {
     describe(type, () => {
       const plugin = getPlugin(type);
-      if (!plugin) { it.skip('plugin not registered', () => {}); return; }
+      if (!plugin) { it.skip('plugin not registered', () => { /* skip */ }); return; }
       const def = plugin.def;
 
       it('build() populates outputVarMap for all outputs', () => {

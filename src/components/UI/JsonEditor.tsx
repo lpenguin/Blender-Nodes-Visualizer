@@ -17,7 +17,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange, isOpen 
            Paste AI-generated JSON schema.
         </span>
         <button
-            onClick={() => onChange('')}
+            onClick={() => { onChange(''); }}
             className="flex items-center gap-1 px-2 py-1 bg-neutral-800 hover:bg-red-900/30 text-neutral-400 hover:text-red-400 border border-neutral-700 rounded text-xs transition-colors"
             title="Clear JSON"
         >
@@ -27,7 +27,7 @@ export const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange, isOpen 
       </div>
       <textarea
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => { onChange(e.target.value); }}
         className="flex-1 w-full bg-[#1e1e1e] text-neutral-300 p-4 font-mono text-xs resize-none outline-none focus:ring-1 focus:ring-blue-500/50"
         spellCheck={false}
         placeholder='{ "nodes": [], "connections": [] }'

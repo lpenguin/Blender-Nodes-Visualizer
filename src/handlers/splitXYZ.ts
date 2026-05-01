@@ -1,4 +1,4 @@
-import { TSLNodePlugin } from '../tslHandlerContext';
+import { TSLNodePlugin, NodeBuildContext, NodeExportContext } from '../tslHandlerContext';
 
 export const SplitXYZPlugin: TSLNodePlugin = {
   type: 'tsl:SplitXYZ',
@@ -17,27 +17,37 @@ export const SplitXYZPlugin: TSLNodePlugin = {
       { id: 'z', name: 'Z', type: 'float' },
     ],
   },
-  build(ctx) {
+  build(ctx: NodeBuildContext): void {
     const inputPort = ctx.node.inputs?.[0];
-    const inputValue = inputPort
-      ? ctx.getInputValue(inputPort.id, inputPort.type, undefined)
-      : ctx.formatDefault('vec3', undefined);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const inputValue = inputPort !== undefined
+      ? ctx.getInputValue(inputPort.id, inputPort.type, null)
+      : ctx.formatDefault('vec3', null);
     const outPorts = ctx.node.outputs ?? [];
-    if (outPorts[0]) ctx.outputVarMap.set(outPorts[0].id, inputValue.x);
-    if (outPorts[1]) ctx.outputVarMap.set(outPorts[1].id, inputValue.y);
-    if (outPorts[2]) ctx.outputVarMap.set(outPorts[2].id, inputValue.z);
+    if (outPorts[0] !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      ctx.outputVarMap.set(outPorts[0].id, inputValue.x);
+    }
+    if (outPorts[1] !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      ctx.outputVarMap.set(outPorts[1].id, inputValue.y);
+    }
+    if (outPorts[2] !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      ctx.outputVarMap.set(outPorts[2].id, inputValue.z);
+    }
   },
-  export(ctx) {
+  export(ctx: NodeExportContext): void {
     const inputPort = ctx.node.inputs?.[0];
-    const inputExpr = inputPort
-      ? ctx.getInputExpression(inputPort.id, inputPort.type, undefined)
+    const inputExpr = inputPort !== undefined
+      ? ctx.getInputExpression(inputPort.id, inputPort.type, null)
       : 'vec3(0, 0, 0)';
     const varName = ctx.sanitizeId(ctx.node.id);
     ctx.lines.push(`const ${varName} = ${inputExpr};`);
     const outPorts = ctx.node.outputs ?? [];
-    if (outPorts[0]) ctx.outputVarMap.set(outPorts[0].id, `${varName}.x`);
-    if (outPorts[1]) ctx.outputVarMap.set(outPorts[1].id, `${varName}.y`);
-    if (outPorts[2]) ctx.outputVarMap.set(outPorts[2].id, `${varName}.z`);
+    if (outPorts[0] !== undefined) ctx.outputVarMap.set(outPorts[0].id, `${varName}.x`);
+    if (outPorts[1] !== undefined) ctx.outputVarMap.set(outPorts[1].id, `${varName}.y`);
+    if (outPorts[2] !== undefined) ctx.outputVarMap.set(outPorts[2].id, `${varName}.z`);
     ctx.nodeVarMap.set(ctx.node.id, varName);
   },
 };

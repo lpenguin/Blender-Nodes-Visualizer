@@ -10,15 +10,15 @@ interface TSLCodePanelProps {
 export const TSLCodePanel: React.FC<TSLCodePanelProps> = ({ isOpen, code, onClose }) => {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => { setCopied(false); }, 2000);
     } catch {
       // Clipboard API unavailable — select the code text as fallback
       const pre = document.querySelector('.tsl-code-content');
-      if (pre && window.getSelection) {
+      if (pre !== null) {
         const selection = window.getSelection();
         const range = document.createRange();
         range.selectNodeContents(pre);
@@ -40,7 +40,7 @@ export const TSLCodePanel: React.FC<TSLCodePanelProps> = ({ isOpen, code, onClos
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleCopy}
+            onClick={() => { void handleCopy(); }}
             className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-colors ${
               copied
                 ? 'bg-green-600/20 text-green-400 border border-green-600/40'

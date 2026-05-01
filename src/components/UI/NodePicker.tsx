@@ -42,12 +42,13 @@ export const NodePicker: React.FC<NodePickerProps> = ({ isOpen, onClose, onAddNo
     for (const cat of TSL_CATEGORIES) map.set(cat, []);
     for (const node of filteredNodes) {
       if (!map.has(node.category)) map.set(node.category, []);
-      map.get(node.category)!.push(node);
+      const nodes = map.get(node.category);
+      if (nodes) nodes.push(node);
     }
     return map;
   }, [filteredNodes]);
 
-  const toggleCategory = (cat: string) => {
+  const toggleCategory = (cat: string): void => {
     setExpandedCategories(prev => {
       const next = new Set(prev);
       if (next.has(cat)) next.delete(cat);
@@ -80,7 +81,7 @@ export const NodePicker: React.FC<NodePickerProps> = ({ isOpen, onClose, onAddNo
             type="text"
             placeholder="Search nodes…"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => { setSearch(e.target.value); }}
             className="w-full pl-8 pr-3 py-1.5 bg-neutral-800 border border-neutral-700 rounded text-xs text-neutral-200 placeholder-neutral-500 outline-none focus:border-blue-500/70 focus:ring-1 focus:ring-blue-500/30 transition-colors"
             autoFocus
           />
@@ -98,7 +99,7 @@ export const NodePicker: React.FC<NodePickerProps> = ({ isOpen, onClose, onAddNo
               {/* Category header */}
               <button
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50 transition-colors border-b border-neutral-800/50"
-                onClick={() => toggleCategory(cat)}
+                onClick={() => { toggleCategory(cat); }}
                 aria-expanded={isExpanded}
                 aria-controls={`cat-${cat}`}
               >

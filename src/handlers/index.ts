@@ -1,7 +1,7 @@
-import { registerPlugin, getPlugin, TSLNodePlugin, TSLNodeDef, NodeBuildContext, NodeExportContext } from '../tslHandlerContext';
+import { registerPlugin, getPlugin, TSLNodePlugin, TSLNodeDef, NodeBuildContext, NodeExportContext, TSLValue } from '../tslHandlerContext';
 
 export { getPlugin };
-export type { NodeBuildContext, NodeExportContext };
+export type { NodeBuildContext, NodeExportContext, TSLValue };
 import { builtinPlugins } from './builtinSources';
 import { UniformFloatPlugin, UniformVec3Plugin, UniformColorPlugin } from './uniforms';
 import { SplitXYZPlugin } from './splitXYZ';
@@ -41,5 +41,6 @@ export const TSL_CATEGORIES = [
   'Built-in',
   'Color',
   'Utility',
+  'Noise',
   'Output',
 ] as const;

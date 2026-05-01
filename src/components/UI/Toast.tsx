@@ -6,7 +6,7 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-export const useToast = () => {
+export const useToast = (): ToastContextType => {
   const context = useContext(ToastContext);
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider');
@@ -17,7 +17,7 @@ export const useToast = () => {
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [toast, setToast] = useState<{ id: number; message: string } | null>(null);
 
-  const showToast = (message: string) => {
+  const showToast = (message: string): void => {
     const id = Date.now();
     setToast({ id, message });
     setTimeout(() => {

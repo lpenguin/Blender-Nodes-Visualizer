@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { uniform } from 'three/tsl';
-import { TSLNodePlugin } from '../tslHandlerContext';
+import { TSLNodePlugin, NodeBuildContext, NodeExportContext } from '../tslHandlerContext';
 
 export const UniformFloatPlugin: TSLNodePlugin = {
   type: 'tsl:UniformFloat',
@@ -18,17 +18,19 @@ export const UniformFloatPlugin: TSLNodePlugin = {
       { id: 'out', name: 'Uniform', type: 'float' },
     ],
   },
-  build(ctx) {
+  build(ctx: NodeBuildContext): void {
     const inputPort = ctx.node.inputs?.[0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const initVal = inputPort?.value;
     const uniformValue = uniform(typeof initVal === 'number' ? initVal : 0);
     for (const out of ctx.node.outputs ?? []) {
       ctx.outputVarMap.set(out.id, uniformValue);
     }
   },
-  export(ctx) {
+  export(ctx: NodeExportContext): void {
     ctx.imports.add('uniform');
     const inputPort = ctx.node.inputs?.[0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const initVal = inputPort?.value;
     const uniformExpr = `uniform(${typeof initVal === 'number' ? initVal.toFixed(4) : '0.0'})`;
     const varName = ctx.sanitizeId(ctx.node.id);
@@ -56,23 +58,25 @@ export const UniformVec3Plugin: TSLNodePlugin = {
       { id: 'out', name: 'Uniform', type: 'vec3' },
     ],
   },
-  build(ctx) {
+  build(ctx: NodeBuildContext): void {
     const inputPort = ctx.node.inputs?.[0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const initVal = inputPort?.value;
     const raw = Array.isArray(initVal) ? initVal : [0, 0, 0];
-    const uniformValue = uniform(new THREE.Vector3(raw[0] ?? 0, raw[1] ?? 0, raw[2] ?? 0));
+    const uniformValue = uniform(new THREE.Vector3(raw[0] as number, raw[1] as number, raw[2] as number));
     for (const out of ctx.node.outputs ?? []) {
       ctx.outputVarMap.set(out.id, uniformValue);
     }
   },
-  export(ctx) {
+  export(ctx: NodeExportContext): void {
     ctx.imports.add('uniform');
     ctx.imports.add('vec3');
     const inputPort = ctx.node.inputs?.[0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const initVal = inputPort?.value;
     const raw = Array.isArray(initVal) ? initVal : [0, 0, 0];
-    const v = [raw[0] ?? 0, raw[1] ?? 0, raw[2] ?? 0];
-    const uniformExpr = `uniform(new THREE.Vector3(${v[0]}, ${v[1]}, ${v[2]}))`;
+    const v = [raw[0] as number, raw[1] as number, raw[2] as number];
+    const uniformExpr = `uniform(new THREE.Vector3(${String(v[0])}, ${String(v[1])}, ${String(v[2])}))`;
     const varName = ctx.sanitizeId(ctx.node.id);
     ctx.lines.push(`const ${varName} = ${uniformExpr};`);
     for (const out of ctx.node.outputs ?? []) {
@@ -98,23 +102,25 @@ export const UniformColorPlugin: TSLNodePlugin = {
       { id: 'out', name: 'Uniform', type: 'color' },
     ],
   },
-  build(ctx) {
+  build(ctx: NodeBuildContext): void {
     const inputPort = ctx.node.inputs?.[0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const initVal = inputPort?.value;
     const raw = Array.isArray(initVal) ? initVal : [1, 1, 1];
-    const uniformValue = uniform(new THREE.Color(raw[0] ?? 1, raw[1] ?? 1, raw[2] ?? 1));
+    const uniformValue = uniform(new THREE.Color(raw[0] as number, raw[1] as number, raw[2] as number));
     for (const out of ctx.node.outputs ?? []) {
       ctx.outputVarMap.set(out.id, uniformValue);
     }
   },
-  export(ctx) {
+  export(ctx: NodeExportContext): void {
     ctx.imports.add('uniform');
     ctx.imports.add('color');
     const inputPort = ctx.node.inputs?.[0];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const initVal = inputPort?.value;
     const raw = Array.isArray(initVal) ? initVal : [1, 1, 1];
-    const v = [raw[0] ?? 1, raw[1] ?? 1, raw[2] ?? 1];
-    const uniformExpr = `uniform(new THREE.Color(${v[0]}, ${v[1]}, ${v[2]}))`;
+    const v = [raw[0] as number, raw[1] as number, raw[2] as number];
+    const uniformExpr = `uniform(new THREE.Color(${String(v[0])}, ${String(v[1])}, ${String(v[2])}))`;
     const varName = ctx.sanitizeId(ctx.node.id);
     ctx.lines.push(`const ${varName} = ${uniformExpr};`);
     for (const out of ctx.node.outputs ?? []) {

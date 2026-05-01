@@ -17,7 +17,7 @@ export function topoSort(nodes: NodeData[], connections: ConnectionData[]): Node
   }
   const visited = new Set<string>();
   const result: NodeData[] = [];
-  function visit(id: string) {
+  function visit(id: string): void {
     if (visited.has(id)) return;
     visited.add(id);
     for (const dep of deps.get(id) ?? []) visit(dep);

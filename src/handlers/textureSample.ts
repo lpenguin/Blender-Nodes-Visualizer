@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { texture, uv as uvFn } from 'three/tsl';
-import { TSLNodePlugin } from '../tslHandlerContext';
+import { TSLNodePlugin, NodeBuildContext, NodeExportContext } from '../tslHandlerContext';
 
 let placeholderTexture: THREE.DataTexture | null = null;
 function getPlaceholderTexture(): THREE.DataTexture {
@@ -39,31 +39,33 @@ export const TextureSamplePlugin: TSLNodePlugin = {
       { id: 'a', name: 'Alpha', type: 'float' },
     ],
   },
-  build(ctx) {
+  build(ctx: NodeBuildContext): void {
     const uvIdx = ctx.def.inputs.findIndex(d => d.id === 'uv');
     const uvPort = uvIdx >= 0 ? ctx.node.inputs?.[uvIdx] : undefined;
-    const uvValue = uvPort
-      ? ctx.getInputValue(uvPort.id, 'vec2', undefined)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const uvValue = uvPort !== undefined
+      ? ctx.getInputValue(uvPort.id, 'vec2', null)
       : uvFn();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const texResult = texture(getPlaceholderTexture(), uvValue);
     const outPorts = ctx.node.outputs ?? [];
-    if (outPorts[0]) ctx.outputVarMap.set(outPorts[0].id, texResult);
-    if (outPorts[1]) ctx.outputVarMap.set(outPorts[1].id, texResult.rgb);
-    if (outPorts[2]) ctx.outputVarMap.set(outPorts[2].id, texResult.a);
+    if (outPorts[0] !== undefined) ctx.outputVarMap.set(outPorts[0].id, texResult);
+    if (outPorts[1] !== undefined) ctx.outputVarMap.set(outPorts[1].id, texResult.rgb);
+    if (outPorts[2] !== undefined) ctx.outputVarMap.set(outPorts[2].id, texResult.a);
   },
-  export(ctx) {
+  export(ctx: NodeExportContext): void {
     ctx.imports.add('texture');
     const uvIdx = ctx.def.inputs.findIndex(d => d.id === 'uv');
     const uvPort = uvIdx >= 0 ? ctx.node.inputs?.[uvIdx] : undefined;
-    const uvExpr = uvPort
-      ? ctx.getInputExpression(uvPort.id, 'vec2', undefined)
+    const uvExpr = uvPort !== undefined
+      ? ctx.getInputExpression(uvPort.id, 'vec2', null)
       : 'uv()';
     const varName = ctx.sanitizeId(ctx.node.id);
     ctx.lines.push(`const ${varName} = texture(myTexture, ${uvExpr});`);
     const outPorts = ctx.node.outputs ?? [];
-    if (outPorts[0]) ctx.outputVarMap.set(outPorts[0].id, varName);
-    if (outPorts[1]) ctx.outputVarMap.set(outPorts[1].id, `${varName}.rgb`);
-    if (outPorts[2]) ctx.outputVarMap.set(outPorts[2].id, `${varName}.a`);
+    if (outPorts[0] !== undefined) ctx.outputVarMap.set(outPorts[0].id, varName);
+    if (outPorts[1] !== undefined) ctx.outputVarMap.set(outPorts[1].id, `${varName}.rgb`);
+    if (outPorts[2] !== undefined) ctx.outputVarMap.set(outPorts[2].id, `${varName}.a`);
     ctx.nodeVarMap.set(ctx.node.id, varName);
   },
 };

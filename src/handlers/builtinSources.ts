@@ -4,8 +4,9 @@ import {
   normalLocal, normalWorld, normalView,
   cameraPosition, vertexColor,
 } from 'three/tsl';
-import { TSLNodePlugin, TSLNodeDef } from '../tslHandlerContext';
+import { TSLNodePlugin, TSLNodeDef, NodeBuildContext, NodeExportContext } from '../tslHandlerContext';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TSLNode = any;
 
 const SOURCES: Record<string, { node: TSLNode; expr: string; def: TSLNodeDef }> = {
@@ -154,12 +155,12 @@ const SOURCES: Record<string, { node: TSLNode; expr: string; def: TSLNodeDef }> 
 export const builtinPlugins: TSLNodePlugin[] = Object.entries(SOURCES).map(([type, src]) => ({
   type,
   def: src.def,
-  build(ctx) {
+  build(ctx: NodeBuildContext): void {
     for (const out of ctx.node.outputs ?? []) {
       ctx.outputVarMap.set(out.id, src.node);
     }
   },
-  export(ctx) {
+  export(ctx: NodeExportContext): void {
     const fn = src.expr.replace('()', '');
     ctx.imports.add(fn);
     const varName = ctx.sanitizeId(ctx.node.id);

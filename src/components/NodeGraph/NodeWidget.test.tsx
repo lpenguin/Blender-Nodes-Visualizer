@@ -29,7 +29,7 @@ describe('NodeWidget', () => {
 
   it('positions node at given coordinates', () => {
     const { container } = render(wrap(<NodeWidget data={makeNode()} />));
-    const el = container.querySelector('[data-node-id="test_node"]') as HTMLElement;
+    const el = container.querySelector('[data-node-id="test_node"]')!;
     expect(el.style.left).toBe('50px');
     expect(el.style.top).toBe('80px');
   });

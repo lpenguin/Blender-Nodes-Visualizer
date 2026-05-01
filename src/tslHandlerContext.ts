@@ -1,10 +1,12 @@
 import { NodeData, ConnectionData } from './types';
 
+export type TSLValue = number | number[] | string | boolean | null;
+
 export interface TSLPortDef {
   id: string;
   name: string;
   type: string;
-  defaultValue?: any;
+  defaultValue?: TSLValue;
 }
 
 export interface TSLNodeDef {
@@ -19,6 +21,7 @@ export interface TSLNodeDef {
   isMaterial?: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TSLNode = any;
 
 export interface NodeBuildContext {
@@ -27,9 +30,9 @@ export interface NodeBuildContext {
   connections: ConnectionData[];
   outputVarMap: Map<string, TSLNode>;
   materialNodes: NodeData[];
-  getInputValue(portId: string, portType: string, defaultValue: any): TSLNode;
-  getInputRaw(portId: string, defaultValue: any): any;
-  formatDefault(type: string, value: any): TSLNode;
+  getInputValue(portId: string, portType: string, defaultValue: TSLValue): TSLNode;
+  getInputRaw(portId: string, defaultValue: TSLValue): TSLNode;
+  formatDefault(type: string, value: TSLValue): TSLNode;
 }
 
 export interface NodeExportContext {
@@ -41,8 +44,8 @@ export interface NodeExportContext {
   lines: string[];
   imports: Set<string>;
   materialNodes: NodeData[];
-  getInputExpression(portId: string, portType: string, defaultValue: any): string;
-  formatDefaultValue(type: string, value: any): string;
+  getInputExpression(portId: string, portType: string, defaultValue: TSLValue): string;
+  formatDefaultValue(type: string, value: TSLValue): string;
   sanitizeId(id: string): string;
 }
 

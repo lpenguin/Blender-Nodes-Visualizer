@@ -1,6 +1,4 @@
 
-import { DataType } from './types';
-
 // Three.js TSL type colors (inspired by GLSL / Three.js node editor palette)
 export const TYPE_COLORS: Record<string, string> = {
   float:   '#A1A1A1', // Grey

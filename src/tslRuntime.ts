@@ -1,13 +1,15 @@
-import * as THREE from 'three';
 import {
-  uv, time, sin, cos, color, mix, add, sub, mul, div, abs, pow, sqrt, clamp,
+  sin, cos, color, mix, add, sub, mul, div, abs, pow, sqrt, clamp,
   step, smoothstep, min, max, fract, floor, ceil, round, mod, sign, log, exp,
   dot, cross, normalize, length, distance, reflect, refract,
   oneMinus, negate, reciprocal, float, vec2, vec3, vec4, uniform, texture,
-  positionLocal, positionWorld, positionView,
-  normalLocal, normalWorld, normalView,
-  cameraPosition, vertexColor,
   hue, saturation, luminance,
+  mx_cell_noise_float,
+  mx_worley_noise_float, mx_worley_noise_vec2, mx_worley_noise_vec3,
+  mx_fractal_noise_float, mx_fractal_noise_vec2, mx_fractal_noise_vec3, mx_fractal_noise_vec4,
+  mx_noise_float, mx_noise_vec3, mx_noise_vec4,
+  mx_unifiednoise2d, mx_unifiednoise3d,
+  triNoise3D, interleavedGradientNoise,
 } from 'three/tsl';
 import {
   MeshStandardNodeMaterial,
@@ -15,11 +17,13 @@ import {
 } from 'three/webgpu';
 import { GraphSchema, NodeData, ConnectionData } from './types';
 import { topoSort } from './tslUtils';
-import { getPlugin, TSL_NODE_BY_TYPE, NodeBuildContext } from './handlers';
+import { getPlugin, TSL_NODE_BY_TYPE, NodeBuildContext, TSLValue } from './handlers';
 import './handlers';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TSLNode = any;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const TSL_FNS: Record<string, (...args: any[]) => TSLNode> = {
   float, vec2, vec3, vec4, color,
   add, sub, mul, div, abs, sin, cos, pow, sqrt,
@@ -29,9 +33,15 @@ const TSL_FNS: Record<string, (...args: any[]) => TSLNode> = {
   oneMinus, negate, reciprocal,
   hue, saturation, luminance,
   uniform, texture,
+  mx_cell_noise_float,
+  mx_worley_noise_float, mx_worley_noise_vec2, mx_worley_noise_vec3,
+  mx_fractal_noise_float, mx_fractal_noise_vec2, mx_fractal_noise_vec3, mx_fractal_noise_vec4,
+  mx_noise_float, mx_noise_vec3, mx_noise_vec4,
+  mx_unifiednoise2d, mx_unifiednoise3d,
+  triNoise3D, interleavedGradientNoise,
 };
 
-function formatDefault(type: string, value: any): TSLNode {
+function formatDefault(type: string, value: TSLValue): TSLNode {
   if (value === undefined || value === null) return float(0);
   switch (type) {
     case 'float': return float(typeof value === 'number' ? value : 0);
@@ -58,29 +68,31 @@ function formatDefault(type: string, value: any): TSLNode {
 function getInputValue(
   portId: string,
   portType: string,
-  defaultValue: any,
+  defaultValue: TSLValue,
   connections: ConnectionData[],
   outputVarMap: Map<string, TSLNode>,
 ): TSLNode {
-  const conn = connections.find(c => c.to === portId);
-  if (conn) {
-    const value = outputVarMap.get(conn.from);
-    if (value !== undefined) return value;
+    const conn = connections.find(c => c.to === portId);
+    if (conn) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const value = outputVarMap.get(conn.from);
+      if (value !== undefined) return value;
+    }
+    return formatDefault(portType, defaultValue);
   }
-  return formatDefault(portType, defaultValue);
-}
 
-function getInputRaw(
-  portId: string,
-  defaultValue: any,
-  connections: ConnectionData[],
-  outputVarMap: Map<string, TSLNode>,
-): any {
-  const conn = connections.find(c => c.to === portId);
-  if (conn) {
-    const value = outputVarMap.get(conn.from);
-    if (value !== undefined) return value;
-  }
+  function getInputRaw(
+    portId: string,
+    defaultValue: TSLValue,
+    connections: ConnectionData[],
+    outputVarMap: Map<string, TSLNode>,
+  ): TSLNode {
+    const conn = connections.find(c => c.to === portId);
+    if (conn) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const value = outputVarMap.get(conn.from);
+      if (value !== undefined) return value;
+    }
   return defaultValue;
 }
 
@@ -103,9 +115,11 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
           connections,
           outputVarMap,
           materialNodes,
-          getInputValue: (portId, portType, defaultValue) =>
+          getInputValue: (portId: string, portType: string, defaultValue: TSLValue): TSLNode =>
+             
             getInputValue(portId, portType, defaultValue, connections, outputVarMap),
-          getInputRaw: (portId, defaultValue) =>
+          getInputRaw: (portId: string, defaultValue: TSLValue): TSLNode =>
+             
             getInputRaw(portId, defaultValue, connections, outputVarMap),
           formatDefault,
         };
@@ -114,14 +128,17 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
       }
 
       const tslFn = TSL_FNS[def.tslFn];
-      if (!tslFn) continue;
+      if (tslFn === undefined) continue;
 
       if (def.isSource) {
         const args = (node.inputs ?? []).map((port, i) => {
           const portDef = def.inputs[i];
-          return getInputRaw(port.id, port.value ?? portDef?.defaultValue, connections, outputVarMap);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
+          return getInputRaw(port.id, port.value ?? portDef?.defaultValue ?? 0, connections, outputVarMap);
         });
-        const flatArgs = args.flatMap(a => Array.isArray(a) ? a : [a]);
+         
+        const flatArgs = args.flatMap((a): TSLNode[] => Array.isArray(a) ? a : [a]);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
         const result = tslFn(...flatArgs);
         for (const out of node.outputs ?? []) {
           outputVarMap.set(out.id, result);
@@ -131,15 +148,18 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
 
       const args = (node.inputs ?? []).map((port, i) => {
         const portDef = def.inputs[i];
-        return getInputValue(port.id, port.type, port.value ?? portDef?.defaultValue, connections, outputVarMap);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
+        return getInputValue(port.id, port.type, port.value ?? portDef?.defaultValue ?? 0, connections, outputVarMap);
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
       const result = tslFn(...args);
       const outPorts = node.outputs ?? [];
       if (outPorts.length === 1) {
         outputVarMap.set(outPorts[0].id, result);
       } else {
         for (let i = 0; i < outPorts.length; i++) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           outputVarMap.set(outPorts[i].id, result[i]);
         }
       }
@@ -156,8 +176,10 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
         const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
         const conn = connections.find(c => c.to === inputPort.id);
         if (conn) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           const sourceValue = outputVarMap.get(conn.from);
           if (sourceValue !== undefined) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
             (material as any)[catalogPortId] = sourceValue;
           }
         }

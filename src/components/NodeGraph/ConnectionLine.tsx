@@ -20,7 +20,7 @@ export const ConnectionLine: React.FC<ConnectionLineProps> = ({ x1, y1, x2, y2, 
   // Use coordinates to generate a stable, unique ID for the gradient
   // We use Math.floor to ensure integer values for the ID string
   const gradientId = useMemo(() => 
-    `grad-${Math.floor(x1)}-${Math.floor(y1)}-${Math.floor(x2)}-${Math.floor(y2)}`, 
+    `grad-${String(Math.floor(x1))}-${String(Math.floor(y1))}-${String(Math.floor(x2))}-${String(Math.floor(y2))}`, 
     [x1, y1, x2, y2]
   );
 

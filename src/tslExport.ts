@@ -1,10 +1,9 @@
 import { GraphSchema, NodeData, ConnectionData } from './types';
 import { topoSort, sanitizeId } from './tslUtils';
-import { getPlugin, TSL_NODE_BY_TYPE, NodeExportContext } from './handlers';
+import { getPlugin, TSL_NODE_BY_TYPE, NodeExportContext, TSLValue } from './handlers';
 import './handlers';
-import { TSLNodeDef } from './tslHandlerContext';
 
-function formatDefaultValue(type: string, value: any): string {
+function formatDefaultValue(type: string, value: TSLValue): string {
   if (value === undefined || value === null) return '0';
   switch (type) {
     case 'float':
@@ -33,7 +32,7 @@ function formatDefaultValue(type: string, value: any): string {
 function getInputExpression(
   portId: string,
   portType: string,
-  defaultValue: any,
+  defaultValue: TSLValue,
   connections: ConnectionData[],
   outputVarMap: Map<string, string>,
 ): string {
@@ -53,6 +52,12 @@ const GENERIC_TSL_FNS = new Set([
   'dot', 'cross', 'normalize', 'length', 'distance', 'reflect', 'refract',
   'oneMinus', 'negate', 'reciprocal',
   'hue', 'saturation', 'luminance',
+  'mx_cell_noise_float',
+  'mx_worley_noise_float', 'mx_worley_noise_vec2', 'mx_worley_noise_vec3',
+  'mx_fractal_noise_float', 'mx_fractal_noise_vec2', 'mx_fractal_noise_vec3', 'mx_fractal_noise_vec4',
+  'mx_noise_float', 'mx_noise_vec3', 'mx_noise_vec4',
+  'mx_unifiednoise2d', 'mx_unifiednoise3d',
+  'triNoise3D', 'interleavedGradientNoise',
 ]);
 
 export function exportTSL(schema: GraphSchema): string {
@@ -95,7 +100,8 @@ export function exportTSL(schema: GraphSchema): string {
       imports.add(def.tslFn);
       const args = (node.inputs ?? []).map((port, i) => {
         const portDef = def.inputs[i];
-        return getInputExpression(port.id, port.type, port.value ?? portDef?.defaultValue, connections, outputVarMap);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        return getInputExpression(port.id, port.type, port.value ?? portDef?.defaultValue ?? 0, connections, outputVarMap);
       });
       const callExpr = `${def.tslFn}(${args.join(', ')})`;
       const varName = sanitizeId(node.id);
@@ -105,7 +111,7 @@ export function exportTSL(schema: GraphSchema): string {
         outputVarMap.set(outPorts[0].id, varName);
       } else {
         for (let i = 0; i < outPorts.length; i++) {
-          outputVarMap.set(outPorts[i].id, `${varName}[${i}]`);
+          outputVarMap.set(outPorts[i].id, `${varName}[${String(i)}]`);
         }
       }
       nodeVarMap.set(node.id, varName);
@@ -113,13 +119,15 @@ export function exportTSL(schema: GraphSchema): string {
   }
 
   for (const matNode of materialNodes) {
-    const def = TSL_NODE_BY_TYPE.get(matNode.type)!;
-    const matVarName = `${sanitizeId(matNode.id)}`;
+    const def = TSL_NODE_BY_TYPE.get(matNode.type);
+    if (!def) continue;
+    const matVarName = sanitizeId(matNode.id);
     lines.push('');
     lines.push(`const ${matVarName} = new ${def.tslFn}();`);
 
-    for (let i = 0; i < (matNode.inputs ?? []).length; i++) {
-      const inputPort = matNode.inputs![i];
+    const inputs = matNode.inputs ?? [];
+    for (let i = 0; i < inputs.length; i++) {
+      const inputPort = inputs[i];
       const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
       const conn = connections.find(c => c.to === inputPort.id);
       if (conn) {

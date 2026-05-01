@@ -14,21 +14,23 @@ export function usePortPositions(
   useLayoutEffect(() => {
     const container = containerRef.current;
     const viewport = viewportRef.current;
-    if (!container || !viewport) return;
+    if (container === null) return;
 
     const portElements = container.querySelectorAll<HTMLElement>('[data-port-id]');
     const newMap: PortPositionMap = new Map();
 
     portElements.forEach(el => {
       const rect = el.getBoundingClientRect();
-      const portId = el.getAttribute('data-port-id')!;
+      const portId = el.getAttribute('data-port-id') ?? '';
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
 
       const worldX = (centerX - viewport.x) / viewport.scale;
       const worldY = (centerY - viewport.y) / viewport.scale;
 
-      newMap.set(portId, { x: worldX, y: worldY });
+      if (portId) {
+        newMap.set(portId, { x: worldX, y: worldY });
+      }
     });
 
     let changed = newMap.size !== prevMapRef.current.size;

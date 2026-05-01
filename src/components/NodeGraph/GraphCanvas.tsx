@@ -73,8 +73,8 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
   const pinchRef = useRef<PinchState | null>(null);
 
   // Refs for data access in callbacks
-  const viewportRef = useRef(viewport);
-  const schemaRef = useRef(schema);
+  const viewportRef = useRef<ViewportState>(viewport);
+  const schemaRef = useRef<GraphSchema>(schema);
 
   const { positions: portPositions, positionsRef: portPositionsRef } = usePortPositions(containerRef, viewportRef);
   
@@ -83,7 +83,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
 
   // --- Helpers ---
 
-  const screenToWorld = (sx: number, sy: number) => {
+  const screenToWorld = (sx: number, sy: number): { x: number; y: number } => {
     const v = viewportRef.current;
     return {
       x: (sx - v.x) / v.scale,
@@ -91,11 +91,11 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     };
   };
 
-  const getPointerDistance = (p1: {x:number, y:number}, p2: {x:number, y:number}) => {
+  const getPointerDistance = (p1: {x:number, y:number}, p2: {x:number, y:number}): number => {
       return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
   };
 
-  const getPointerCenter = (p1: {x:number, y:number}, p2: {x:number, y:number}) => {
+  const getPointerCenter = (p1: {x:number, y:number}, p2: {x:number, y:number}): { x: number; y: number } => {
       return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
   };
 
@@ -135,7 +135,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     return null;
   };
 
-  const getPortAtPointer = (clientX: number, clientY: number) => {
+  const getPortAtPointer = (clientX: number, clientY: number): PortMeta | null => {
     const viewportState = viewportRef.current;
     const hitRadius = Math.max(10, viewportState.scale * 12);
     let closestPort: { meta: PortMeta; distance: number } | null = null;
@@ -179,7 +179,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     return closestPort?.meta ?? null;
   };
 
-  const getPortAnchorPosition = (portId: string, _direction: PortDirection) => {
+  const getPortAnchorPosition = (portId: string, _direction: PortDirection): { x: number; y: number } | null => {
     return portPositionsRef.current.get(portId) ?? null;
   };
 
@@ -187,7 +187,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     return !!port && port.direction !== dragState.anchorDirection && port.portId !== dragState.anchorPortId;
   };
 
-  const buildConnectionsForDrop = (dragState: ConnectionDragState, targetPort: PortMeta) => {
+  const buildConnectionsForDrop = (dragState: ConnectionDragState, targetPort: PortMeta): { from: string; to: string }[] => {
     const nextConnection = dragState.anchorDirection === 'output'
       ? { from: dragState.anchorPortId, to: targetPort.portId }
       : { from: targetPort.portId, to: dragState.anchorPortId };
@@ -245,7 +245,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     };
   };
 
-  const handleInputValueChange = (nodeId: string, portId: string, value: TSLValue) => {
+  const handleInputValueChange = (nodeId: string, portId: string, value: TSLValue): void => {
     const updatedNodes = schemaRef.current.nodes.map((node) => {
       if (node.id !== nodeId) return node;
 
@@ -264,7 +264,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
 
   // --- Handlers ---
 
-  const handlePointerDown = (e: React.PointerEvent) => {
+  const handlePointerDown = (e: React.PointerEvent): void => {
     containerRef.current?.focus();
     // Capture pointer to track movements outside div if needed (standard for drag)
     containerRef.current?.setPointerCapture(e.pointerId);
@@ -279,7 +279,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     // --- CHECK MULTI-TOUCH (PINCH) ---
     if (activePointersRef.current.size === 2) {
         const points: { x: number; y: number }[] = Array.from(activePointersRef.current.values());
-        if (points[0] && points[1]) {
+        if (points[0] !== undefined && points[1] !== undefined) {
             const dist = getPointerDistance(points[0], points[1]);
             const center = getPointerCenter(points[0], points[1]);
 
@@ -360,7 +360,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
                     
                     // Calc offsets
                     const worldMouse = screenToWorld(e.clientX, e.clientY);
-                    const offsets = new Map();
+                    const offsets = new Map<string, { x: number; y: number }>();
                     const node = schemaRef.current.nodes.find(n => n.id === clickedNodeId);
                     if (node) {
                         offsets.set(node.id, { x: node.position.x - worldMouse.x, y: node.position.y - worldMouse.y });
@@ -382,7 +382,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
                     setSelectedNodeIds(newSelection);
 
                     const worldMouse = screenToWorld(e.clientX, e.clientY);
-                    const offsets = new Map();
+                    const offsets = new Map<string, { x: number; y: number }>();
                     schemaRef.current.nodes.forEach(node => {
                         if (newSelection.has(node.id)) {
                             offsets.set(node.id, {
@@ -418,7 +418,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     }
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
+  const handlePointerMove = (e: React.PointerEvent): void => {
     // Update pointer tracker
     if (activePointersRef.current.has(e.pointerId)) {
         activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -431,7 +431,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     if (mode === 'PINCH_ZOOM' && activePointersRef.current.size === 2 && pinchRef.current) {
         const points: { x: number; y: number }[] = Array.from(activePointersRef.current.values());
         
-        if (points[0] && points[1]) {
+        if (points[0] !== undefined && points[1] !== undefined) {
             const currDist = getPointerDistance(points[0], points[1]);
             const currCenter = getPointerCenter(points[0], points[1]);
             
@@ -574,7 +574,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     }
   };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
+  const handlePointerUp = (e: React.PointerEvent): void => {
     activePointersRef.current.delete(e.pointerId);
     if (containerRef.current?.hasPointerCapture(e.pointerId)) {
         containerRef.current.releasePointerCapture(e.pointerId);
@@ -632,7 +632,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     }
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
+  const handleWheel = (e: React.WheelEvent): void => {
     e.stopPropagation();
     const zoomSensitivity = 0.001;
     const delta = -e.deltaY * zoomSensitivity;
@@ -654,7 +654,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     setViewport({ x: newX, y: newY, scale: newScale });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent): void => {
     if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeIds.size > 0) {
       e.preventDefault();
       const nodeIdsToDelete = Array.from(selectedNodeIds);
@@ -670,7 +670,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
   const detachedConnection = connectionDrag?.detachedConnection;
 
   const connectionLines = schema.connections
-    .filter((conn) => !detachedConnection || conn.from !== detachedConnection.from || conn.to !== detachedConnection.to)
+    .filter((conn) => conn.from !== detachedConnection?.from || conn.to !== detachedConnection.to)
     .map((conn, idx) => {
     const start = portPositions.get(conn.from);
     const end = portPositions.get(conn.to);
@@ -683,7 +683,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     if (start && end && sourcePortDef && targetPortDef) {
       return (
         <ConnectionLine
-          key={`${conn.from}-${conn.to}-${idx}`}
+          key={`${conn.from}-${conn.to}-${String(idx)}`}
           x1={start.x}
           y1={start.y}
           x2={end.x}
@@ -726,22 +726,22 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
       onLostPointerCapture={handlePointerUp}
       onWheel={handleWheel}
       onKeyDown={handleKeyDown}
-      onContextMenu={(e) => e.preventDefault()}
+      onContextMenu={(e) => { e.preventDefault(); }}
     >
         {/* Grid Background */}
         <div 
             className="absolute inset-0 pointer-events-none opacity-20"
             style={{
                 backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)',
-                backgroundSize: `${20 * viewport.scale}px ${20 * viewport.scale}px`,
-                backgroundPosition: `${viewport.x}px ${viewport.y}px`
+                backgroundSize: `${String(20 * viewport.scale)}px ${String(20 * viewport.scale)}px`,
+                backgroundPosition: `${String(viewport.x)}px ${String(viewport.y)}px`
             }}
         />
 
         {/* World Transform Layer */}
         <div 
             style={{
-                transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`,
+                transform: `translate(${String(viewport.x)}px, ${String(viewport.y)}px) scale(${String(viewport.scale)})`,
                 transformOrigin: '0 0',
                 width: '100%',
                 height: '100%',
@@ -791,7 +791,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
             {mode === 'DRAGGING_CONNECTION'
               ? 'Drag to a compatible port and release'
               : selectedNodeIds.size > 0
-                ? `${selectedNodeIds.size} selected | Del: Delete`
+                ? `${String(selectedNodeIds.size)} selected | Del: Delete`
                 : 'L-Click: Select | Drag Ports: Connect | Wheel: Zoom | Middle/Right: Pan'}
         </div>
     </div>
