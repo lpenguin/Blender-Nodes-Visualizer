@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
-import { sin, mix, color, time } from 'three/tsl';
+import { sin, mix, color, time, normalWorld } from 'three/tsl';
 import { WebGPURenderer, MeshStandardNodeMaterial } from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { X, RotateCcw } from 'lucide-react';
@@ -89,6 +89,12 @@ export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, on
         const fillLight = new THREE.DirectionalLight(0x8888ff, 0.5);
         fillLight.position.set(-3, 2, -5);
         scene.add(fillLight);
+
+        // Pure TSL procedural environment — sky/ground gradient for PBR specular + diffuse
+        const skyColor = color(0x80aaff);
+        const groundColor = color(0x221a15);
+        const blendFactor = normalWorld.y.add(1.0).mul(0.5);
+        scene.environmentNode = mix(groundColor, skyColor, blendFactor);
 
         const grid = createHorizontalGrid(10, 1.0, 0.2);
         scene.add(grid);
