@@ -226,11 +226,17 @@ function App(): React.ReactElement {
 
             {/* Context Menu Node Picker Popup */}
             {contextMenuPos && (
-              <NodePickerPopup
-                screenPos={contextMenuPos.screen}
-                onClose={handleCloseContextMenu}
-                onAddNode={handleAddNodeFromPopup}
-              />
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onPointerDown={handleCloseContextMenu}
+                />
+                <NodePickerPopup
+                  screenPos={contextMenuPos.screen}
+                  onClose={handleCloseContextMenu}
+                  onAddNode={handleAddNodeFromPopup}
+                />
+              </>
             )}
 
             {/* TSL Code Panel Overlay */}
