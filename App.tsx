@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GraphCanvas } from './components/NodeGraph/GraphCanvas';
 import { Toolbar } from './components/UI/Toolbar';
 import { JsonEditor } from './components/UI/JsonEditor';
@@ -21,6 +21,25 @@ function App() {
   const [showTSLCode, setShowTSLCode] = useState<boolean>(false);
   const [tslCode, setTslCode] = useState<string>('');
   const [showPreview, setShowPreview] = useState<boolean>(window.innerWidth > 768);
+  const [previewWidth, setPreviewWidth] = useState<number>(300);
+  const isResizingRef = useRef(false);
+
+  const handleResizeStart = (e: React.PointerEvent) => {
+    isResizingRef.current = true;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    e.preventDefault();
+  };
+
+  const handleResizeMove = (e: React.PointerEvent) => {
+    if (!isResizingRef.current) return;
+    const newWidth = Math.min(800, Math.max(200, window.innerWidth - e.clientX));
+    setPreviewWidth(newWidth);
+  };
+
+  const handleResizeEnd = (e: React.PointerEvent) => {
+    isResizingRef.current = false;
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  };
 
   // Parse JSON whenever input changes
   useEffect(() => {
@@ -178,11 +197,22 @@ function App() {
             )}
           </div>
 
-          <ShaderPreview
-            schema={schema}
-            isOpen={showPreview}
-            onClose={() => setShowPreview(false)}
-          />
+          {showPreview && (
+            <>
+              <div
+                onPointerDown={handleResizeStart}
+                onPointerMove={handleResizeMove}
+                onPointerUp={handleResizeEnd}
+                className="w-1 cursor-col-resize hover:w-1.5 hover:bg-neutral-400/60 transition-all shrink-0 z-30"
+              />
+              <ShaderPreview
+                schema={schema}
+                isOpen={showPreview}
+                onClose={() => setShowPreview(false)}
+                width={previewWidth}
+              />
+            </>
+          )}
         </div>
       </div>
     </ToastProvider>

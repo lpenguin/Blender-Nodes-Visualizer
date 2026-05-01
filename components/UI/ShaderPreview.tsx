@@ -10,9 +10,10 @@ interface ShaderPreviewProps {
   schema: GraphSchema | null;
   isOpen: boolean;
   onClose: () => void;
+  width?: number;
 }
 
-export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, onClose }) => {
+export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, onClose, width = 300 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -142,7 +143,7 @@ export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, on
   if (!isOpen) return null;
 
   return (
-    <div className="w-[300px] shrink-0 bg-neutral-900 border-l border-neutral-800 z-30 flex flex-col">
+    <div style={{ width }} className="shrink-0 bg-neutral-900 border-l border-neutral-800 z-30 flex flex-col">
       <div className="flex items-center justify-between p-3 bg-neutral-800/60 border-b border-neutral-800 shrink-0">
         <div className="flex items-center gap-2">
           <RotateCcw size={16} className="text-purple-400" />
