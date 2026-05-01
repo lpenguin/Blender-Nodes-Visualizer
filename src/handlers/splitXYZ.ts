@@ -24,15 +24,15 @@ export const SplitXYZPlugin: TSLNodePlugin = {
       ? ctx.getInputValue(inputPort.id, inputPort.type, null)
       : ctx.formatDefault('vec3', null);
     const outPorts = ctx.node.outputs ?? [];
-    if (outPorts[0] !== undefined) {
+    if (outPorts.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       ctx.outputVarMap.set(outPorts[0].id, inputValue.x);
     }
-    if (outPorts[1] !== undefined) {
+    if (outPorts.length > 1) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       ctx.outputVarMap.set(outPorts[1].id, inputValue.y);
     }
-    if (outPorts[2] !== undefined) {
+    if (outPorts.length > 2) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       ctx.outputVarMap.set(outPorts[2].id, inputValue.z);
     }
@@ -45,9 +45,9 @@ export const SplitXYZPlugin: TSLNodePlugin = {
     const varName = ctx.sanitizeId(ctx.node.id);
     ctx.lines.push(`const ${varName} = ${inputExpr};`);
     const outPorts = ctx.node.outputs ?? [];
-    if (outPorts[0] !== undefined) ctx.outputVarMap.set(outPorts[0].id, `${varName}.x`);
-    if (outPorts[1] !== undefined) ctx.outputVarMap.set(outPorts[1].id, `${varName}.y`);
-    if (outPorts[2] !== undefined) ctx.outputVarMap.set(outPorts[2].id, `${varName}.z`);
+    if (outPorts.length > 0) ctx.outputVarMap.set(outPorts[0].id, `${varName}.x`);
+    if (outPorts.length > 1) ctx.outputVarMap.set(outPorts[1].id, `${varName}.y`);
+    if (outPorts.length > 2) ctx.outputVarMap.set(outPorts[2].id, `${varName}.z`);
     ctx.nodeVarMap.set(ctx.node.id, varName);
   },
 };

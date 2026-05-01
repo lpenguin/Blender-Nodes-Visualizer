@@ -126,7 +126,7 @@ export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, on
         };
         animate();
       } catch (err: unknown) {
-        if (aliveRef.current) setError((err as Error).message ?? 'WebGPU init failed');
+        if (aliveRef.current) setError((err as Error).message || 'WebGPU init failed');
       }
     })();
 

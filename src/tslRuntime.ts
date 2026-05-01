@@ -42,7 +42,7 @@ const TSL_FNS: Record<string, (...args: any[]) => TSLNode> = {
 };
 
 function formatDefault(type: string, value: TSLValue): TSLNode {
-  if (value === undefined || value === null) return float(0);
+  if (value === null) return float(0);
   switch (type) {
     case 'float': return float(typeof value === 'number' ? value : 0);
     case 'vec2': {
@@ -128,13 +128,12 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
       }
 
       const tslFn = TSL_FNS[def.tslFn];
-      if (tslFn === undefined) continue;
 
       if (def.isSource) {
         const args = (node.inputs ?? []).map((port, i) => {
           const portDef = def.inputs[i];
           // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
-          return getInputRaw(port.id, port.value ?? portDef?.defaultValue ?? 0, connections, outputVarMap);
+          return getInputRaw(port.id, port.value ?? portDef.defaultValue ?? 0, connections, outputVarMap);
         });
          
         const flatArgs = args.flatMap((a): TSLNode[] => Array.isArray(a) ? a : [a]);
@@ -149,7 +148,7 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
       const args = (node.inputs ?? []).map((port, i) => {
         const portDef = def.inputs[i];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
-        return getInputValue(port.id, port.type, port.value ?? portDef?.defaultValue ?? 0, connections, outputVarMap);
+        return getInputValue(port.id, port.type, port.value ?? portDef.defaultValue ?? 0, connections, outputVarMap);
       });
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
@@ -166,13 +165,15 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
     }
 
     for (const matNode of materialNodes) {
-      const def = TSL_NODE_BY_TYPE.get(matNode.type)!;
+      const def = TSL_NODE_BY_TYPE.get(matNode.type);
+      if (!def) continue;
       const material = def.tslFn === 'MeshPhysicalNodeMaterial'
         ? new MeshPhysicalNodeMaterial()
         : new MeshStandardNodeMaterial();
 
-      for (let i = 0; i < (matNode.inputs ?? []).length; i++) {
-        const inputPort = matNode.inputs![i];
+      const matInputs = matNode.inputs ?? [];
+      for (let i = 0; i < matInputs.length; i++) {
+        const inputPort = matInputs[i];
         const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
         const conn = connections.find(c => c.to === inputPort.id);
         if (conn) {

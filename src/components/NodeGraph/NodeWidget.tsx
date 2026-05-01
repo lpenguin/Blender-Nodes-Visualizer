@@ -330,7 +330,7 @@ const FloatCurveDisplay: React.FC<{ value: FloatCurvePoint[] }> = ({ value }) =>
 
             {/* Details Panel */}
              <div className="flex items-center gap-1 h-[20px] bg-neutral-900/50 rounded px-1 border border-neutral-700/50">
-                 {selectedPoint !== undefined ? (
+                  {points.length > 0 ? (
                     <>
                         <div 
                             className="flex items-center gap-1 px-1 hover:bg-neutral-700/50 rounded cursor-pointer group transition-colors min-w-0 flex-1"
@@ -726,7 +726,7 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, onInputValueChange
         <span className="truncate">{data.name}</span>
         {data.type.startsWith('tsl:') && TSL_NODE_BY_TYPE.get(data.type)?.tslFn && (
           <span className="text-[9px] font-mono text-white/40 shrink-0 ml-2 hidden sm:inline">
-            {TSL_NODE_BY_TYPE.get(data.type)!.tslFn}()
+            {TSL_NODE_BY_TYPE.get(data.type)?.tslFn}()
           </span>
         )}
       </div>

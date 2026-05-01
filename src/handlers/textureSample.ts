@@ -49,9 +49,9 @@ export const TextureSamplePlugin: TSLNodePlugin = {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const texResult = texture(getPlaceholderTexture(), uvValue);
     const outPorts = ctx.node.outputs ?? [];
-    if (outPorts[0] !== undefined) ctx.outputVarMap.set(outPorts[0].id, texResult);
-    if (outPorts[1] !== undefined) ctx.outputVarMap.set(outPorts[1].id, texResult.rgb);
-    if (outPorts[2] !== undefined) ctx.outputVarMap.set(outPorts[2].id, texResult.a);
+    if (outPorts.length > 0) ctx.outputVarMap.set(outPorts[0].id, texResult);
+    if (outPorts.length > 1) ctx.outputVarMap.set(outPorts[1].id, texResult.rgb);
+    if (outPorts.length > 2) ctx.outputVarMap.set(outPorts[2].id, texResult.a);
   },
   export(ctx: NodeExportContext): void {
     ctx.imports.add('texture');
@@ -63,9 +63,9 @@ export const TextureSamplePlugin: TSLNodePlugin = {
     const varName = ctx.sanitizeId(ctx.node.id);
     ctx.lines.push(`const ${varName} = texture(myTexture, ${uvExpr});`);
     const outPorts = ctx.node.outputs ?? [];
-    if (outPorts[0] !== undefined) ctx.outputVarMap.set(outPorts[0].id, varName);
-    if (outPorts[1] !== undefined) ctx.outputVarMap.set(outPorts[1].id, `${varName}.rgb`);
-    if (outPorts[2] !== undefined) ctx.outputVarMap.set(outPorts[2].id, `${varName}.a`);
+    if (outPorts.length > 0) ctx.outputVarMap.set(outPorts[0].id, varName);
+    if (outPorts.length > 1) ctx.outputVarMap.set(outPorts[1].id, `${varName}.rgb`);
+    if (outPorts.length > 2) ctx.outputVarMap.set(outPorts[2].id, `${varName}.a`);
     ctx.nodeVarMap.set(ctx.node.id, varName);
   },
 };

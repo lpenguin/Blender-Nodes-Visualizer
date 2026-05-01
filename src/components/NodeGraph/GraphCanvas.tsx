@@ -279,7 +279,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     // --- CHECK MULTI-TOUCH (PINCH) ---
     if (activePointersRef.current.size === 2) {
         const points: { x: number; y: number }[] = Array.from(activePointersRef.current.values());
-        if (points[0] !== undefined && points[1] !== undefined) {
+        {
             const dist = getPointerDistance(points[0], points[1]);
             const center = getPointerCenter(points[0], points[1]);
 
@@ -431,7 +431,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     if (mode === 'PINCH_ZOOM' && activePointersRef.current.size === 2 && pinchRef.current) {
         const points: { x: number; y: number }[] = Array.from(activePointersRef.current.values());
         
-        if (points[0] !== undefined && points[1] !== undefined) {
+        {
             const currDist = getPointerDistance(points[0], points[1]);
             const currCenter = getPointerCenter(points[0], points[1]);
             
@@ -590,8 +590,9 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
             onConnectionsChange(updatedConnections);
             if (onInteractionEnd) onInteractionEnd(updatedSchema);
         } else if (connectionDrag.detachedConnection && onConnectionsChange) {
+            const detached = connectionDrag.detachedConnection;
             const updatedConnections = schemaRef.current.connections.filter(
-                (connection) => connection.from !== connectionDrag.detachedConnection?.from || connection.to !== connectionDrag.detachedConnection?.to
+                (connection) => connection.from !== detached.from || connection.to !== detached.to
             );
             const updatedSchema = { ...schemaRef.current, connections: updatedConnections };
             onConnectionsChange(updatedConnections);
