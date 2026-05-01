@@ -4,7 +4,7 @@ import { getPlugin, TSL_NODE_BY_TYPE, NodeExportContext, TSLValue } from './hand
 import './handlers';
 
 function formatDefaultValue(type: string, value: TSLValue): string {
-  if (value === null) return '0';
+  if (value === null || value === 0) return '0';
   switch (type) {
     case 'float':
       return typeof value === 'number' ? value.toFixed(4) : String(value);
@@ -100,7 +100,7 @@ export function exportTSL(schema: GraphSchema): string {
       imports.add(def.tslFn);
       const args = (node.inputs ?? []).map((port, i) => {
         const portDef = def.inputs[i];
-         
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         return getInputExpression(port.id, port.type, port.value ?? portDef.defaultValue ?? 0, connections, outputVarMap);
       });
       const callExpr = `${def.tslFn}(${args.join(', ')})`;

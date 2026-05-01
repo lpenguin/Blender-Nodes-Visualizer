@@ -173,7 +173,7 @@ describe('exportTSL', () => {
         connections: [],
       };
       const result = exportTSL(schema);
-      expect(result).toContain('const clamp1 = clamp(0, 0.0000, 1.0000);');
+      expect(result).toContain('const clamp1 = clamp(0, 0, 1.0000);');
     });
 
     it('generates a Dot node with undefined vec3 values (falls back to 0)', () => {

@@ -173,7 +173,8 @@ export const parseGraphJSON = (json: string): { schema: GraphSchema | null; erro
       return { schema: null, error: "Invalid JSON: 'nodes' array missing." };
     }
     
-    return { schema: applyConnectionState(parsed), error: null };
+    const schema: GraphSchema = { ...parsed, connections: parsed.connections ?? [] };
+    return { schema: applyConnectionState(schema), error: null };
   } catch (e: unknown) {
     return { schema: null, error: (e as Error).message || "Invalid JSON syntax." };
   }
