@@ -135,6 +135,38 @@ function App() {
     setShowTSLCode(v => !v);
   };
 
+  // Delete selected nodes and their connected wires
+  const handleDeleteNodes = useCallback((nodeIds: string[]) => {
+    if (!schema) return;
+    const nodeIdSet = new Set(nodeIds);
+    
+    // Collect all port IDs belonging to deleted nodes
+    const deletedPortIds = new Set<string>();
+    for (const node of schema.nodes) {
+      if (nodeIdSet.has(node.id)) {
+        node.inputs?.forEach(p => deletedPortIds.add(p.id));
+        node.outputs?.forEach(p => deletedPortIds.add(p.id));
+      }
+    }
+    
+    // Remove deleted nodes
+    const remainingNodes = schema.nodes.filter(n => !nodeIdSet.has(n.id));
+    
+    // Remove connections that involve deleted ports
+    const remainingConnections = schema.connections.filter(
+      conn => !deletedPortIds.has(conn.from) && !deletedPortIds.has(conn.to)
+    );
+    
+    const updated = applyConnectionState({
+      ...schema,
+      nodes: remainingNodes,
+      connections: remainingConnections,
+    });
+    
+    setSchema(updated);
+    setJsonInput(JSON.stringify(updated, null, 2));
+  }, [schema]);
+
   return (
     <ToastProvider>
       <div className="w-screen h-screen flex flex-col bg-neutral-900 overflow-hidden text-neutral-200 font-sans">
@@ -160,6 +192,7 @@ function App() {
                     onNodesChange={handleNodesChange}
                     onConnectionsChange={handleConnectionsChange}
                     onInteractionEnd={handleInteractionEnd}
+                    onDeleteNodes={handleDeleteNodes}
                   />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-neutral-600 flex-col gap-4">

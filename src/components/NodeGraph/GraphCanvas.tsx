@@ -10,6 +10,7 @@ interface GraphCanvasProps {
   onNodesChange?: (nodes: NodeData[]) => void;
   onConnectionsChange?: (connections: ConnectionData[]) => void;
   onInteractionEnd?: (schema?: GraphSchema) => void;
+  onDeleteNodes?: (nodeIds: string[]) => void;
 }
 
 type InteractionMode = 'IDLE' | 'PANNING' | 'DRAGGING_NODES' | 'BOX_SELECTING' | 'RESIZING_NODE' | 'PINCH_ZOOM' | 'DRAGGING_CONNECTION';
@@ -55,7 +56,7 @@ interface PinchState {
     startViewportPos: { x: number; y: number };
 }
 
-export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange, onConnectionsChange, onInteractionEnd }) => {
+export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange, onConnectionsChange, onInteractionEnd, onDeleteNodes }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState<ViewportState>({ x: 0, y: 0, scale: 1 });
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
@@ -651,6 +652,17 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     setViewport({ x: newX, y: newY, scale: newScale });
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeIds.size > 0) {
+      e.preventDefault();
+      const nodeIdsToDelete = Array.from(selectedNodeIds);
+      setSelectedNodeIds(new Set());
+      if (onDeleteNodes) {
+        onDeleteNodes(nodeIdsToDelete);
+      }
+    }
+  };
+
   // --- Rendering ---
 
   const detachedConnection = connectionDrag?.detachedConnection;
@@ -697,6 +709,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
   return (
     <div 
       ref={containerRef}
+      tabIndex={0}
       className={`w-full h-full bg-[#111] overflow-hidden relative touch-none select-none outline-none
         ${mode === 'PANNING' ? 'cursor-grabbing' : ''}
         ${mode === 'DRAGGING_NODES' ? 'cursor-move' : ''}
@@ -710,6 +723,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
       onPointerUp={handlePointerUp}
       onLostPointerCapture={handlePointerUp}
       onWheel={handleWheel}
+      onKeyDown={handleKeyDown}
       onContextMenu={(e) => e.preventDefault()}
     >
         {/* Grid Background */}
@@ -775,7 +789,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
             {mode === 'DRAGGING_CONNECTION'
               ? 'Drag to a compatible port and release'
               : selectedNodeIds.size > 0
-                ? `${selectedNodeIds.size} selected`
+                ? `${selectedNodeIds.size} selected | Del: Delete`
                 : 'L-Click: Select | Drag Ports: Connect | Wheel: Zoom | Middle/Right: Pan'}
         </div>
     </div>

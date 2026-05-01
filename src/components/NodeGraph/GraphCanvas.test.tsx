@@ -311,4 +311,80 @@ describe('GraphCanvas', () => {
       expect(grid).not.toBeNull();
     });
   });
+
+  describe('node deletion', () => {
+    it('shows delete hint when nodes are selected', () => {
+      const { container } = render(wrap(<GraphCanvas schema={makeSchema()} />));
+      const nodeA = container.querySelector('[data-node-id="node_a"]')!;
+      fireEvent.pointerDown(nodeA, { clientX: 150, clientY: 150, pointerId: 1, button: 0, pointerType: 'mouse' });
+      fireEvent.pointerUp(container.firstChild!, { clientX: 150, clientY: 150, pointerId: 1 });
+      expect(container.textContent).toContain('Del: Delete');
+    });
+
+    it('calls onDeleteNodes when Delete key is pressed', () => {
+      const onDeleteNodes = vi.fn();
+      const { container } = render(
+        wrap(<GraphCanvas schema={makeSchema()} onDeleteNodes={onDeleteNodes} />)
+      );
+      const nodeA = container.querySelector('[data-node-id="node_a"]')!;
+      fireEvent.pointerDown(nodeA, { clientX: 150, clientY: 150, pointerId: 1, button: 0, pointerType: 'mouse' });
+      fireEvent.pointerUp(container.firstChild!, { clientX: 150, clientY: 150, pointerId: 1 });
+      fireEvent.keyDown(container.firstChild!, { key: 'Delete' });
+      expect(onDeleteNodes).toHaveBeenCalledWith(['node_a']);
+    });
+
+    it('calls onDeleteNodes when Backspace key is pressed', () => {
+      const onDeleteNodes = vi.fn();
+      const { container } = render(
+        wrap(<GraphCanvas schema={makeSchema()} onDeleteNodes={onDeleteNodes} />)
+      );
+      const nodeA = container.querySelector('[data-node-id="node_a"]')!;
+      fireEvent.pointerDown(nodeA, { clientX: 150, clientY: 150, pointerId: 1, button: 0, pointerType: 'mouse' });
+      fireEvent.pointerUp(container.firstChild!, { clientX: 150, clientY: 150, pointerId: 1 });
+      fireEvent.keyDown(container.firstChild!, { key: 'Backspace' });
+      expect(onDeleteNodes).toHaveBeenCalledWith(['node_a']);
+    });
+
+    it('does not call onDeleteNodes when no nodes are selected', () => {
+      const onDeleteNodes = vi.fn();
+      const { container } = render(
+        wrap(<GraphCanvas schema={makeSchema()} onDeleteNodes={onDeleteNodes} />)
+      );
+      fireEvent.keyDown(container.firstChild!, { key: 'Delete' });
+      expect(onDeleteNodes).not.toHaveBeenCalled();
+    });
+
+    it('calls onDeleteNodes with multiple selected nodes', () => {
+      const onDeleteNodes = vi.fn();
+      const { container } = render(
+        wrap(<GraphCanvas schema={makeSchema()} onDeleteNodes={onDeleteNodes} />)
+      );
+      const nodeA = container.querySelector('[data-node-id="node_a"]')!;
+      const nodeB = container.querySelector('[data-node-id="node_b"]')!;
+      // Select node A
+      fireEvent.pointerDown(nodeA, { clientX: 150, clientY: 150, pointerId: 1, button: 0, pointerType: 'mouse' });
+      fireEvent.pointerUp(container.firstChild!, { clientX: 150, clientY: 150, pointerId: 1 });
+      // Shift-select node B
+      fireEvent.pointerDown(nodeB, { clientX: 450, clientY: 150, pointerId: 2, button: 0, shiftKey: true, pointerType: 'mouse' });
+      fireEvent.pointerUp(container.firstChild!, { clientX: 450, clientY: 150, pointerId: 2 });
+      fireEvent.keyDown(container.firstChild!, { key: 'Delete' });
+      expect(onDeleteNodes).toHaveBeenCalled();
+      const calledIds = onDeleteNodes.mock.calls[0][0];
+      expect(calledIds).toContain('node_a');
+      expect(calledIds).toContain('node_b');
+    });
+
+    it('clears selection after delete', () => {
+      const onDeleteNodes = vi.fn();
+      const { container } = render(
+        wrap(<GraphCanvas schema={makeSchema()} onDeleteNodes={onDeleteNodes} />)
+      );
+      const nodeA = container.querySelector('[data-node-id="node_a"]')!;
+      fireEvent.pointerDown(nodeA, { clientX: 150, clientY: 150, pointerId: 1, button: 0, pointerType: 'mouse' });
+      fireEvent.pointerUp(container.firstChild!, { clientX: 150, clientY: 150, pointerId: 1 });
+      expect(container.textContent).toContain('1 selected');
+      fireEvent.keyDown(container.firstChild!, { key: 'Delete' });
+      expect(container.textContent).not.toContain('selected');
+    });
+  });
 });
