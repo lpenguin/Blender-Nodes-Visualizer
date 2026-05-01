@@ -24,8 +24,35 @@ export const NodePickerPopup: React.FC<NodePickerPopupProps> = ({ screenPos, onC
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(['Inputs', 'Math', 'Built-in', 'Output'])
   );
+  const [position, setPosition] = useState({
+    x: Math.max(8, Math.min(screenPos.x, window.innerWidth - 320 - 8)),
+    y: Math.max(8, Math.min(screenPos.y, window.innerHeight - 400 - 8)),
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
   const popupRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleTitlePointerDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    setIsDragging(true);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    dragOffsetRef.current = { x: e.clientX - position.x, y: e.clientY - position.y };
+  };
+
+  const handleTitlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setPosition({
+      x: Math.max(0, e.clientX - dragOffsetRef.current.x),
+      y: Math.max(0, e.clientY - dragOffsetRef.current.y),
+    });
+  };
+
+  const handleTitlePointerUp = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  };
   useEffect(() => {
     inputRef.current?.focus();
 
@@ -83,23 +110,26 @@ export const NodePickerPopup: React.FC<NodePickerPopupProps> = ({ screenPos, onC
 
   const popupWidth = 320;
   const popupMaxHeight = 400;
-  const left = Math.min(screenPos.x, window.innerWidth - popupWidth - 8);
-  const top = Math.min(screenPos.y, window.innerHeight - popupMaxHeight - 8);
 
   return (
     <div
       ref={popupRef}
       className="fixed z-50 bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl flex flex-col overflow-hidden"
       style={{
-        left: Math.max(8, left),
-        top: Math.max(8, top),
+        left: position.x,
+        top: position.y,
         width: popupWidth,
         maxHeight: popupMaxHeight,
       }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-neutral-800/60 border-b border-neutral-800 shrink-0">
-        <span className="text-sm font-semibold text-neutral-200">Add Node</span>
+      {/* Header / Drag Handle */}
+      <div
+        className="flex items-center justify-between p-3 bg-neutral-800/60 border-b border-neutral-800 shrink-0 cursor-grab active:cursor-grabbing"
+        onPointerDown={handleTitlePointerDown}
+        onPointerMove={handleTitlePointerMove}
+        onPointerUp={handleTitlePointerUp}
+      >
+        <span className="text-sm font-semibold text-neutral-200 select-none">Add Node</span>
       </div>
 
       {/* Search */}
