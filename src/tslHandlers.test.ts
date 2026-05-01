@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { registerPlugin, getPlugin, TSLNodePlugin, TSLNodeDef, NodeBuildContext, NodeExportContext } from './tslHandlerContext';
 import { TSL_NODE_CATALOG, TSL_NODE_BY_TYPE, TSL_CATEGORIES } from './handlers';
 import { NodeData, ConnectionData } from './types';
@@ -215,7 +215,7 @@ describe('plugin build + export for each handler type', () => {
   for (const type of pluginTypes) {
     describe(type, () => {
       const plugin = getPlugin(type);
-      if (!plugin) { it.skip('plugin not registered'); return; }
+      if (!plugin) { it.skip('plugin not registered', () => {}); return; }
       const def = plugin.def;
 
       it('build() populates outputVarMap for all outputs', () => {

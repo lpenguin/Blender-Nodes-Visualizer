@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from 'bun:test';
 import { exportTSL } from './tslExport';
 import { GraphSchema, NodeData, ConnectionData } from './types';
 
