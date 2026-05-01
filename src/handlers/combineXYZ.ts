@@ -22,11 +22,11 @@ export const CombineXYZPlugin: TSLNodePlugin = {
     const xPort = ctx.node.inputs?.[0];
     const yPort = ctx.node.inputs?.[1];
     const zPort = ctx.node.inputs?.[2];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+     
     const x = xPort !== undefined ? ctx.getInputValue(xPort.id, xPort.type, xPort.value ?? 0) : ctx.formatDefault('float', 0);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+     
     const y = yPort !== undefined ? ctx.getInputValue(yPort.id, yPort.type, yPort.value ?? 0) : ctx.formatDefault('float', 0);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
+     
     const z = zPort !== undefined ? ctx.getInputValue(zPort.id, zPort.type, zPort.value ?? 0) : ctx.formatDefault('float', 0);
     const result = vec3(x as number, y as number, z as number);
     for (const out of ctx.node.outputs ?? []) {
@@ -38,11 +38,11 @@ export const CombineXYZPlugin: TSLNodePlugin = {
     const xPort = ctx.node.inputs?.[0];
     const yPort = ctx.node.inputs?.[1];
     const zPort = ctx.node.inputs?.[2];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+     
     const xExpr = xPort !== undefined ? ctx.getInputExpression(xPort.id, xPort.type, xPort.value ?? 0) : '0';
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+     
     const yExpr = yPort !== undefined ? ctx.getInputExpression(yPort.id, yPort.type, yPort.value ?? 0) : '0';
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+     
     const zExpr = zPort !== undefined ? ctx.getInputExpression(zPort.id, zPort.type, zPort.value ?? 0) : '0';
     const varName = ctx.sanitizeId(ctx.node.id);
     ctx.lines.push(`const ${varName} = vec3(${xExpr}, ${yExpr}, ${zExpr});`);
