@@ -194,18 +194,17 @@ describe('GraphCanvas', () => {
     it('enters box selecting on background pointerdown', () => {
       const { container } = render(wrap(<GraphCanvas schema={makeSchema()} />));
       fireEvent.pointerDown(container.firstChild!, {
-        clientX: 0, clientY: 0, pointerId: 1, button: 0, pointerType: 'mouse',
+        clientX: 500, clientY: 500, pointerId: 1, button: 0, pointerType: 'mouse',
       });
-      // Should show crosshair cursor
       expect((container.firstChild as HTMLElement).className).toContain('cursor-crosshair');
     });
 
     it('selection box appears during drag', () => {
       const { container } = render(wrap(<GraphCanvas schema={makeSchema()} />));
       fireEvent.pointerDown(container.firstChild!, {
-        clientX: 50, clientY: 50, pointerId: 1, button: 0, pointerType: 'mouse',
+        clientX: 500, clientY: 500, pointerId: 1, button: 0, pointerType: 'mouse',
       });
-      fireEvent.pointerMove(container.firstChild!, { clientX: 200, clientY: 200, pointerId: 1 });
+      fireEvent.pointerMove(container.firstChild!, { clientX: 600, clientY: 600, pointerId: 1 });
       const box = container.querySelector('.border-dashed');
       expect(box).not.toBeNull();
     });
@@ -213,10 +212,10 @@ describe('GraphCanvas', () => {
     it('selection box disappears on pointerup', () => {
       const { container } = render(wrap(<GraphCanvas schema={makeSchema()} />));
       fireEvent.pointerDown(container.firstChild!, {
-        clientX: 50, clientY: 50, pointerId: 1, button: 0, pointerType: 'mouse',
+        clientX: 500, clientY: 500, pointerId: 1, button: 0, pointerType: 'mouse',
       });
-      fireEvent.pointerMove(container.firstChild!, { clientX: 200, clientY: 200, pointerId: 1 });
-      fireEvent.pointerUp(container.firstChild!, { clientX: 200, clientY: 200, pointerId: 1 });
+      fireEvent.pointerMove(container.firstChild!, { clientX: 600, clientY: 600, pointerId: 1 });
+      fireEvent.pointerUp(container.firstChild!, { clientX: 600, clientY: 600, pointerId: 1 });
       const box = container.querySelector('.border-dashed');
       expect(box).toBeNull();
     });

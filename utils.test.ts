@@ -4,7 +4,6 @@ import {
   rgbToHex,
   hexToRgb,
   generateGradientCSS,
-  getPortPosition,
   calculateNodeContentSize,
   calculateBezierPath,
   applyConnectionState,
@@ -158,115 +157,6 @@ describe('isValidGradient', () => {
 
   it('rejects non-array', () => {
     expect(isValidGradient('not array')).toBe(false);
-  });
-});
-
-describe('getPortPosition', () => {
-  const makeNode = (overrides: Partial<NodeData> = {}): NodeData => ({
-    id: 'test_node',
-    name: 'Test',
-    type: 'tsl:Test',
-    position: { x: 100, y: 200 },
-    outputs: [{ id: 'out1', name: 'Out1', type: 'float' }],
-    inputs: [{ id: 'in1', name: 'In1', type: 'float' }],
-    ...overrides,
-  });
-
-  it('returns null for non-existent output port', () => {
-    const node = makeNode();
-    expect(getPortPosition(node, 'nonexistent', 'output')).toBeNull();
-  });
-
-  it('returns null for non-existent input port', () => {
-    const node = makeNode();
-    expect(getPortPosition(node, 'nonexistent', 'input')).toBeNull();
-  });
-
-  it('positions output at right edge of node', () => {
-    const node = makeNode({ size: { width: 200, height: 200 } });
-    const pos = getPortPosition(node, 'out1', 'output');
-    expect(pos).not.toBeNull();
-    expect(pos!.x).toBe(100 + 200); // position.x + width
-  });
-
-  it('positions input at left edge of node', () => {
-    const node = makeNode({ size: { width: 200, height: 200 } });
-    const pos = getPortPosition(node, 'in1', 'input');
-    expect(pos).not.toBeNull();
-    expect(pos!.x).toBe(100); // position.x
-  });
-
-  it('output y is below header + padding', () => {
-    const node = makeNode({ size: { width: 200, height: 200 } });
-    const pos = getPortPosition(node, 'out1', 'output');
-    // HEADER(32) + BORDER(1) + PADDING(8) + half ITEM_H(12) = 53
-    expect(pos!.y).toBe(200 + 1 + 32 + 8 + 12);
-  });
-
-  it('second output y is offset by ITEM_H + GAP', () => {
-    const node = makeNode({
-      outputs: [
-        { id: 'out1', name: 'Out1', type: 'float' },
-        { id: 'out2', name: 'Out2', type: 'color' },
-      ],
-    });
-    const pos1 = getPortPosition(node, 'out1', 'output');
-    const pos2 = getPortPosition(node, 'out2', 'output');
-    expect(pos2!.y - pos1!.y).toBe(24 + 4); // ITEM_H + GAP
-  });
-
-  it('input y accounts for outputs and properties', () => {
-    const node = makeNode({
-      outputs: [{ id: 'out1', name: 'Out1', type: 'float' }],
-      properties: [{ name: 'prop1', type: 'float', value: 0 }],
-      inputs: [{ id: 'in1', name: 'In1', type: 'float' }],
-    });
-    const pos = getPortPosition(node, 'in1', 'input');
-    // Input should be further down than output
-    const outPos = getPortPosition(node, 'out1', 'output');
-    expect(pos!.y).toBeGreaterThan(outPos!.y);
-  });
-
-  it('uses default width 200 when size not provided', () => {
-    const node = makeNode();
-    const pos = getPortPosition(node, 'out1', 'output');
-    expect(pos!.x).toBe(100 + 200);
-  });
-
-  it('connected input uses base height (collapsed widget)', () => {
-    const node = makeNode({
-      inputs: [
-        { id: 'in1', name: 'In1', type: 'float', connected: true },
-        { id: 'in2', name: 'In2', type: 'float', connected: true },
-      ],
-    });
-    const pos1 = getPortPosition(node, 'in1', 'input');
-    const pos2 = getPortPosition(node, 'in2', 'input');
-    expect(pos2!.y - pos1!.y).toBe(24 + 4); // BASE_H + GAP
-  });
-
-  it('disconnected float input uses taller height', () => {
-    const node = makeNode({
-      inputs: [
-        { id: 'in1', name: 'In1', type: 'float', connected: false },
-        { id: 'in2', name: 'In2', type: 'float', connected: false },
-      ],
-    });
-    const pos1 = getPortPosition(node, 'in1', 'input');
-    const pos2 = getPortPosition(node, 'in2', 'input');
-    expect(pos2!.y - pos1!.y).toBe(28 + 4); // float widget height + GAP
-  });
-
-  it('gradient disconnected input uses expanded height', () => {
-    const node = makeNode({
-      inputs: [
-        { id: 'in1', name: 'In1', type: 'gradient', connected: false },
-        { id: 'in2', name: 'In2', type: 'float', connected: false },
-      ],
-    });
-    const pos1 = getPortPosition(node, 'in1', 'input');
-    const pos2 = getPortPosition(node, 'in2', 'input');
-    expect(pos2!.y - pos1!.y).toBe(72 + 4); // gradient height + GAP
   });
 });
 

@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { GraphSchema, ViewportState, NodeData, ConnectionData, DataType } from '../../types';
 import { NodeWidget } from './NodeWidget';
 import { ConnectionLine } from './ConnectionLine';
-import { getPortPosition, calculateNodeContentSize } from '../../utils';
+import { calculateNodeContentSize } from '../../utils';
+import { usePortPositions, PortPositionMap } from '../../hooks/usePortPositions';
 
 interface GraphCanvasProps {
   schema: GraphSchema;
@@ -72,6 +73,8 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
   // Refs for data access in callbacks
   const viewportRef = useRef(viewport);
   const schemaRef = useRef(schema);
+
+  const { positions: portPositions, positionsRef: portPositionsRef } = usePortPositions(containerRef, viewportRef);
   
   useEffect(() => { viewportRef.current = viewport; }, [viewport]);
   useEffect(() => { schemaRef.current = schema; }, [schema]);
@@ -135,9 +138,11 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     const hitRadius = Math.max(10, viewportState.scale * 12);
     let closestPort: { meta: PortMeta; distance: number } | null = null;
 
+    const measuredPositions = portPositionsRef.current;
+
     for (const node of schemaRef.current.nodes) {
       for (const output of node.outputs ?? []) {
-        const position = getPortPosition(node, output.id, 'output');
+        const position = measuredPositions.get(output.id);
         if (!position) continue;
 
         const screenX = (position.x * viewportState.scale) + viewportState.x;
@@ -153,7 +158,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
       }
 
       for (const input of node.inputs ?? []) {
-        const position = getPortPosition(node, input.id, 'input');
+        const position = measuredPositions.get(input.id);
         if (!position) continue;
 
         const screenX = (position.x * viewportState.scale) + viewportState.x;
@@ -172,14 +177,8 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     return closestPort?.meta ?? null;
   };
 
-  const getPortAnchorPosition = (portId: string, direction: PortDirection) => {
-    const node = schemaRef.current.nodes.find((candidate) =>
-      direction === 'output'
-        ? candidate.outputs?.some((port) => port.id === portId)
-        : candidate.inputs?.some((port) => port.id === portId)
-    );
-
-    return node ? getPortPosition(node, portId, direction) : null;
+  const getPortAnchorPosition = (portId: string, _direction: PortDirection) => {
+    return portPositionsRef.current.get(portId) ?? null;
   };
 
   const isConnectionTargetValid = (dragState: ConnectionDragState, port: PortMeta | null): port is PortMeta => {
@@ -659,16 +658,13 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
   const connectionLines = schema.connections
     .filter((conn) => !detachedConnection || conn.from !== detachedConnection.from || conn.to !== detachedConnection.to)
     .map((conn, idx) => {
-    const actualSourceNode = schema.nodes.find(n => n.outputs?.some(o => o.id === conn.from));
-    const actualTargetNode = schema.nodes.find(n => n.inputs?.some(i => i.id === conn.to));
+    const start = portPositions.get(conn.from);
+    const end = portPositions.get(conn.to);
 
-    if (!actualSourceNode || !actualTargetNode) return null;
-
-    const start = getPortPosition(actualSourceNode, conn.from, 'output');
-    const end = getPortPosition(actualTargetNode, conn.to, 'input');
-    
-    const sourcePortDef = actualSourceNode.outputs?.find(o => o.id === conn.from);
-    const targetPortDef = actualTargetNode.inputs?.find(i => i.id === conn.to);
+    const sourceNode = schema.nodes.find(n => n.outputs?.some(o => o.id === conn.from));
+    const targetNode = schema.nodes.find(n => n.inputs?.some(i => i.id === conn.to));
+    const sourcePortDef = sourceNode?.outputs?.find(o => o.id === conn.from);
+    const targetPortDef = targetNode?.inputs?.find(i => i.id === conn.to);
 
     if (start && end && sourcePortDef && targetPortDef) {
       return (

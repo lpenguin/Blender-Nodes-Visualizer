@@ -67,19 +67,16 @@ export const generateGradientCSS = (stops: any[]): string => {
 
 // --- Geometry Helpers ---
 
-// Helper to estimate height based on type and connection state
 const getInputHeight = (port: NodePort): number => {
     const BASE_H = 24;
-    // If connected, it usually collapses to just the label row
     if (port.connected) return BASE_H;
     
-    // If disconnected, check type for widgets
     switch (port.type) {
         case 'float': return 28;
         case 'int': return 28;
         case 'color': return 24;
-        case 'gradient': return 72; // Row(24) + Widget(40) + Margin(8)
-        case 'float_curve': return 168; // Row(24) + Widget(136) + Margin(8)
+        case 'gradient': return 72;
+        case 'float_curve': return 168;
         case 'vector3': return BASE_H; 
         case 'rotation': return BASE_H;
         default: return BASE_H;
@@ -93,81 +90,6 @@ const getPropertyHeight = (prop: NodeProperty): number => {
         case 'float_curve': return 168;
         default: return BASE_H;
     }
-};
-
-export const getPortPosition = (
-  node: NodeData,
-  portId: string,
-  type: 'input' | 'output'
-): { x: number; y: number } | null => {
-  
-  // Layout Order:
-  // Header (32px)
-  // Padding Top (8px)
-  // Outputs Container (Stacked)
-  // [Gap]
-  // Properties Container (Stacked)
-  // [Gap]
-  // Inputs Container (Stacked)
-  
-  const BORDER_W = 1;
-  const HEADER_H = 32;
-  const PADDING_TOP = 8;
-  const GAP = 4;
-  const ITEM_H = 24; 
-  
-  let currentY = BORDER_W + HEADER_H + PADDING_TOP;
-
-  // 1. Outputs Section
-  if (type === 'output') {
-      const outputs = node.outputs || [];
-      const index = outputs.findIndex(p => p.id === portId);
-      if (index === -1) return null;
-
-      const yOffset = index * (ITEM_H + GAP) + (ITEM_H / 2);
-      const nodeWidth = node.size?.width ?? 200;
-
-      return {
-          x: node.position.x + nodeWidth,
-          y: node.position.y + currentY + yOffset
-      };
-  }
-
-  // 2. Inputs Section
-  if (type === 'input') {
-      // Offset by Outputs
-      if (node.outputs && node.outputs.length > 0) {
-          const outputsHeight = node.outputs.length * (ITEM_H + GAP);
-          currentY += outputsHeight + 5; 
-      }
-
-      // Offset by Properties
-      if (node.properties && node.properties.length > 0) {
-          let propsHeight = 0;
-          node.properties.forEach(p => {
-              propsHeight += getPropertyHeight(p) + GAP;
-          });
-          currentY += propsHeight + 5;
-      }
-
-      const inputs = node.inputs || [];
-      const index = inputs.findIndex(p => p.id === portId);
-      if (index === -1) return null;
-
-      let yOffset = 0;
-      for (let i = 0; i < index; i++) {
-          yOffset += getInputHeight(inputs[i]) + GAP;
-      }
-      
-      const portCenter = ITEM_H / 2;
-      
-      return {
-          x: node.position.x, 
-          y: node.position.y + currentY + yOffset + portCenter
-      };
-  }
-
-  return null;
 };
 
 export const calculateNodeContentSize = (node: NodeData): { width: number; height: number } => {
