@@ -143,8 +143,8 @@ export function exportTSL(schema: GraphSchema): string {
       imports.add(builtinFn);
       const varName = `${varBase}`;
       lines.push(`const ${varName} = ${expr};`);
-      // Map the (single) output port
-      for (const out of def.outputs) {
+      // Map output ports using graph node port IDs (not catalog IDs)
+      for (const out of node.outputs ?? []) {
         outputVarMap.set(out.id, varName);
       }
       nodeVarMap.set(node.id, varName);
@@ -166,11 +166,8 @@ export function exportTSL(schema: GraphSchema): string {
         : 'vec3(0, 0, 0)';
       const varName = varBase;
       lines.push(`const ${varName} = ${inputExpr};`);
-      outputVarMap.set(`${node.id}_x`, `${varName}.x`);
-      outputVarMap.set(`${node.id}_y`, `${varName}.y`);
-      outputVarMap.set(`${node.id}_z`, `${varName}.z`);
-      // Map output ports by position
-      const outPorts = def.outputs;
+      // Map output ports using graph node port IDs
+      const outPorts = node.outputs ?? [];
       if (outPorts[0]) outputVarMap.set(outPorts[0].id, `${varName}.x`);
       if (outPorts[1]) outputVarMap.set(outPorts[1].id, `${varName}.y`);
       if (outPorts[2]) outputVarMap.set(outPorts[2].id, `${varName}.z`);
@@ -181,13 +178,16 @@ export function exportTSL(schema: GraphSchema): string {
     // ── TextureSample special case ──
     if (node.type === 'tsl:TextureSample') {
       imports.add('texture');
-      const uvPort = node.inputs?.find(p => p.id === 'uv');
+      // Find the UV input port by matching catalog input position
+      const uvCatalogIndex = def.inputs.findIndex(d => d.id === 'uv');
+      const uvPort = uvCatalogIndex >= 0 ? node.inputs?.[uvCatalogIndex] : undefined;
       const uvExpr = uvPort
         ? getInputExpression(uvPort.id, 'vec2', undefined, connections, outputVarMap)
         : 'uv()';
       const varName = `${varBase}`;
       lines.push(`const ${varName} = texture(myTexture, ${uvExpr});`);
-      const outPorts = def.outputs;
+      // Map output ports using graph node port IDs
+      const outPorts = node.outputs ?? [];
       if (outPorts[0]) outputVarMap.set(outPorts[0].id, varName);
       if (outPorts[1]) outputVarMap.set(outPorts[1].id, `${varName}.rgb`);
       if (outPorts[2]) outputVarMap.set(outPorts[2].id, `${varName}.a`);
@@ -216,7 +216,7 @@ export function exportTSL(schema: GraphSchema): string {
       }
       const varName = varBase;
       lines.push(`const ${varName} = ${uniformExpr};`);
-      for (const out of def.outputs) {
+      for (const out of node.outputs ?? []) {
         outputVarMap.set(out.id, varName);
       }
       nodeVarMap.set(node.id, varName);
@@ -226,8 +226,8 @@ export function exportTSL(schema: GraphSchema): string {
     // ── Generic function nodes ──
     imports.add(def.tslFn);
 
-    const args = (node.inputs ?? []).map(port => {
-      const portDef = def.inputs.find(d => d.id === port.id);
+    const args = (node.inputs ?? []).map((port, i) => {
+      const portDef = def.inputs[i];
       return getInputExpression(port.id, port.type, port.value ?? portDef?.defaultValue, connections, outputVarMap);
     });
 
@@ -235,12 +235,13 @@ export function exportTSL(schema: GraphSchema): string {
     const varName = varBase;
     lines.push(`const ${varName} = ${callExpr};`);
 
-    // Map output ports
-    if (def.outputs.length === 1) {
-      outputVarMap.set(def.outputs[0].id, varName);
+    // Map output ports using graph node port IDs
+    const outPorts = node.outputs ?? [];
+    if (outPorts.length === 1) {
+      outputVarMap.set(outPorts[0].id, varName);
     } else {
-      for (let i = 0; i < def.outputs.length; i++) {
-        outputVarMap.set(def.outputs[i].id, `${varName}[${i}]`);
+      for (let i = 0; i < outPorts.length; i++) {
+        outputVarMap.set(outPorts[i].id, `${varName}[${i}]`);
       }
     }
     nodeVarMap.set(node.id, varName);
@@ -253,13 +254,15 @@ export function exportTSL(schema: GraphSchema): string {
     lines.push('');
     lines.push(`const ${matVarName} = new ${def.tslFn}();`);
 
-    for (const inputPort of matNode.inputs ?? []) {
+    for (let i = 0; i < (matNode.inputs ?? []).length; i++) {
+      const inputPort = matNode.inputs![i];
+      const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
       const conn = connections.find(c => c.to === inputPort.id);
       if (conn) {
         const sourceExpr = outputVarMap.get(conn.from);
         if (sourceExpr) {
-          lines.push(`${matVarName}.${inputPort.id} = ${sourceExpr};`);
-          materialAssignments.push(`${matVarName}.${inputPort.id}`);
+          lines.push(`${matVarName}.${catalogPortId} = ${sourceExpr};`);
+          materialAssignments.push(`${matVarName}.${catalogPortId}`);
         }
       }
     }
