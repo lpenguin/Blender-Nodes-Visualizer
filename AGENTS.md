@@ -15,13 +15,4 @@ This ensures you have full context from previous sessions before making changes.
 
 ## Git Worktree Workflow
 
-For feature work that requires a separate branch:
-
-1. **Create worktree**: `git worktree add ../<repoName>.<branchName> -b <branchName>`
-   - Directory naming: `<repoName>.<branchName>` (e.g. `Blender-Nodes-Visualizer.switch-to-bun`)
-2. **Do all work** in the worktree directory
-3. **Verify changes**: run `bunx tsc` (compilation) and `bun test` (tests) before committing
-4. **Commit** when changes are ready and verified by the user
-4. **Merge back**: from the main repo, `git merge <branchName>`
-5. **Clean up**: `git branch -d <branchName>` and `git worktree prune`
-6. **Ask the user to manually delete** the worktree directory — it's often locked by editors/terminals and can't be removed programmatically
+Load the `worktree` skill (`/worktree`) for all worktree operations.
