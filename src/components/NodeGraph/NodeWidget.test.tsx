@@ -24,7 +24,7 @@ const makeNode = (overrides: Partial<NodeData> = {}): NodeData => ({
 describe('NodeWidget', () => {
   it('renders node name in header', () => {
     render(wrap(<NodeWidget data={makeNode()} />));
-    expect(screen.getByText('Test Node')).toBeInTheDocument();
+    screen.getByText('Test Node');
   });
 
   it('positions node at given coordinates', () => {
@@ -114,7 +114,7 @@ describe('NodeWidget', () => {
     it('shows numeric widget for disconnected float input', () => {
       render(wrap(<NodeWidget data={makeNode()} />));
       // The float value 0.5 should appear in the numeric editor
-      expect(screen.getByText('0.5')).toBeInTheDocument();
+      screen.getByText('0.5');
     });
 
     it('hides widget for connected input', () => {
@@ -123,7 +123,7 @@ describe('NodeWidget', () => {
       });
       render(wrap(<NodeWidget data={node} />));
       // Connected input only shows label, no value widget
-      expect(screen.getByText('A')).toBeInTheDocument();
+      screen.getByText('A');
       // Value 0.5 should NOT be shown as editable
       const valEls = screen.queryAllByText('0.5');
       expect(valEls.length).toBe(0);
@@ -193,7 +193,7 @@ describe('NodeWidget', () => {
   describe('output row', () => {
     it('shows output port name', () => {
       render(wrap(<NodeWidget data={makeNode()} />));
-      expect(screen.getByText('Result')).toBeInTheDocument();
+      screen.getByText('Result');
     });
 
     it('output port dot always shows connected style', () => {
@@ -209,7 +209,7 @@ describe('NodeWidget', () => {
         properties: [{ id: 'prop1', name: 'My Prop', type: 'float', value: 1.0 }],
       });
       render(wrap(<NodeWidget data={node} />));
-      expect(screen.getByText('My Prop')).toBeInTheDocument();
+      screen.getByText('My Prop');
     });
 
     it('property names are italic', () => {
