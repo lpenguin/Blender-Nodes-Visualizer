@@ -29,7 +29,7 @@ const PortDot: React.FC<{ type: string; isConnected?: boolean; highlightState?: 
 
   return (
     <div 
-      className={`w-[12px] h-[12px] rounded-full border border-neutral-900 ${isConnected ? '' : 'opacity-80'} shrink-0 transition-all duration-100 ${highlightClass}`}
+      className={`w-[12px] h-[12px] rounded-full border border-neutral-900 shrink-0 transition-all duration-100 ${highlightClass}`}
       style={{ backgroundColor: color }}
     />
   );
@@ -703,8 +703,8 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, onInputValueChange
   return (
     <div
       data-node-id={data.id}
-      className={`absolute flex flex-col rounded-lg shadow-2xl bg-neutral-800/95 overflow-visible text-sm select-none touch-none pointer-events-auto
-        ${isSelected ? 'ring-2 ring-yellow-400 z-10' : 'border border-neutral-700'}`}
+      className={`absolute flex flex-col rounded-lg shadow-2xl bg-neutral-800 overflow-visible text-sm select-none touch-none pointer-events-auto
+        ${isSelected ? 'ring-2 ring-yellow-400 z-[70]' : 'border border-neutral-700 z-0'}`}
       style={{
         left: x,
         top: y,
