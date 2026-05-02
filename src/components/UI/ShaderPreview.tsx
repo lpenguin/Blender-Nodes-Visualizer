@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { sin, mix, color, time, normalWorld } from 'three/tsl';
 import { WebGPURenderer, MeshStandardNodeMaterial } from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { X, RotateCcw } from 'lucide-react';
+import { X, RotateCcw, Box, Circle } from 'lucide-react';
 import { buildTSLMaterial } from '../../tslRuntime';
 import { GraphSchema } from '../../types';
 
@@ -37,9 +37,11 @@ interface ShaderPreviewProps {
   isOpen: boolean;
   onClose: () => void;
   width?: number;
+  shape?: 'cube' | 'sphere';
+  onShapeChange?: (shape: 'cube' | 'sphere') => void;
 }
 
-export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, onClose, width = 300 }) => {
+export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, onClose, width = 300, shape = 'cube', onShapeChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -178,6 +180,15 @@ export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, on
     }
   }, [schema]);
 
+  useEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    mesh.geometry.dispose();
+    mesh.geometry = shape === 'cube'
+      ? new THREE.BoxGeometry(1, 1, 1)
+      : new THREE.SphereGeometry(0.6, 32, 32);
+  }, [shape]);
+
   const handleResetRotation = (): void => {
     if (meshRef.current) {
       meshRef.current.rotation.set(0, 0, 0);
@@ -200,6 +211,20 @@ export const ShaderPreview: React.FC<ShaderPreviewProps> = ({ schema, isOpen, on
             title="Reset rotation"
           >
             <RotateCcw size={14} />
+          </button>
+          <button
+            onClick={() => onShapeChange?.('cube')}
+            className={`p-1 rounded transition-colors ${shape === 'cube' ? 'bg-purple-700 text-white' : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'}`}
+            title="Cube"
+          >
+            <Box size={14} />
+          </button>
+          <button
+            onClick={() => onShapeChange?.('sphere')}
+            className={`p-1 rounded transition-colors ${shape === 'sphere' ? 'bg-purple-700 text-white' : 'hover:bg-neutral-700 text-neutral-400 hover:text-white'}`}
+            title="Sphere"
+          >
+            <Circle size={14} />
           </button>
           <button
             onClick={onClose}

@@ -22,6 +22,7 @@ function App(): React.ReactElement {
   const [tslCode, setTslCode] = useState<string>('');
   const [showPreview, setShowPreview] = useState<boolean>(window.innerWidth > 768);
   const [previewWidth, setPreviewWidth] = useState<number>(300);
+  const [previewShape, setPreviewShape] = useState<'cube' | 'sphere'>('cube');
   const isResizingRef = useRef(false);
 
   const handleResizeStart = (e: React.PointerEvent): void => {
@@ -243,6 +244,8 @@ function App(): React.ReactElement {
                 isOpen={showPreview}
                 onClose={() => { setShowPreview(false); }}
                 width={previewWidth}
+                shape={previewShape}
+                onShapeChange={setPreviewShape}
               />
             </>
           )}

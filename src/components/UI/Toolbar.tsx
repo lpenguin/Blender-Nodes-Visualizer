@@ -25,7 +25,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   showPreview,
 }) => {
   return (
-    <div className="absolute top-0 left-0 w-full h-14 bg-neutral-900/80 backdrop-blur-md border-b border-neutral-800 flex items-center justify-between px-4 z-50">
+    <div className="h-14 bg-neutral-900/80 backdrop-blur-md border-b border-neutral-800 flex items-center justify-between px-4 z-50 shrink-0">
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center shadow-lg shrink-0">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Three.js TSL Node Editor logo" role="img">
