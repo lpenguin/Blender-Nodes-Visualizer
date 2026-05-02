@@ -13,15 +13,9 @@ Use the MemPalace tools to search for relevant information before beginning work
 
 This ensures you have full context from previous sessions before making changes.
 
-## Git Worktree Workflow
+## Development workflow
+After applying the change set run validation commands:
+* bunx tsc
+* bun run lint
+* bun test
 
-Load the `worktree` skill (`/worktree`) for all worktree operations.
-
-**CRITICAL: After creating a worktree, ALL file edits and bash commands MUST target the worktree directory.**
-
-- Worktree path: `~/.worktrees/<project_name>/<branch_name>`
-- The `edit` tool uses absolute `filePath` — always prefix with the worktree path, NOT the original repo path
-- The `bash` tool has a `workdir` parameter — always set it to the worktree path
-- The `write` tool uses absolute `filePath` — same rule as `edit`
-- The `read` and `glob` tools also use absolute paths — use worktree paths
-- Never edit files in the original checkout (`C:\Users\Nikita\Sources\...`) when a worktree is active
