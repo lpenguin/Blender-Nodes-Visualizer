@@ -104,4 +104,56 @@ describe('App JSON import/export', () => {
     appendChildSpy.mockRestore();
     removeSpy.mockRestore();
   });
+
+  it('shows undo and redo in the edit menu', () => {
+    const { getByText, getByTitle } = render(<App />);
+
+    fireEvent.click(getByTitle('Edit menu'));
+
+    expect(getByText('Undo')).toBeTruthy();
+    expect(getByText('Redo')).toBeTruthy();
+    expect(getByText('Ctrl-Z')).toBeTruthy();
+    expect(getByText('Ctrl-Y')).toBeTruthy();
+  });
+
+  it('supports undo and redo shortcuts for graph edits', async () => {
+    const { container, getByTitle, getByText } = render(<App />);
+    const initialCount = container.querySelectorAll('[data-node-id]').length;
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(input).not.toBeNull();
+
+    const file = new File([
+      JSON.stringify({
+        nodes: [
+          {
+            id: 'imported_node',
+            name: 'Imported Node',
+            type: 'tsl:Time',
+            position: { x: 10, y: 20 },
+            inputs: [],
+            outputs: [{ id: 'imported_out', name: 'Time', type: 'float' }],
+          },
+        ],
+        connections: [],
+      }),
+    ], 'imported-graph.json', { type: 'application/json' });
+
+    fireEvent.click(getByTitle('File menu'));
+    fireEvent.click(getByText('Import JSON'));
+    fireEvent.change(input!, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('[data-node-id]').length).toBe(1);
+    });
+
+    fireEvent.keyDown(window, { key: 'z', ctrlKey: true });
+    expect(container.querySelectorAll('[data-node-id]').length).toBe(initialCount);
+
+    fireEvent.keyDown(window, { key: 'y', ctrlKey: true });
+    expect(container.querySelectorAll('[data-node-id]').length).toBe(1);
+
+    fireEvent.click(getByTitle('Edit menu'));
+    fireEvent.click(getByText('Undo'));
+    expect(container.querySelectorAll('[data-node-id]').length).toBe(initialCount);
+  });
 });

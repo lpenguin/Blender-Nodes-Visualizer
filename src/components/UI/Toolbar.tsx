@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Download, PlusSquare, Code2, Box, FileText, ChevronDown, Save, Copy, FolderOpen } from 'lucide-react';
+import { Upload, Download, PlusSquare, Code2, Box, FileText, ChevronDown, Save, Copy, FolderOpen, Undo2, Redo2 } from 'lucide-react';
 
 interface ToolbarProps {
   materialName: string;
@@ -9,6 +9,10 @@ interface ToolbarProps {
   onDuplicateMaterial: () => void;
   onImportJson: () => void;
   onExportJson: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
   canExportJson: boolean;
   hasError: boolean;
   onToggleNodePicker: () => void;
@@ -27,6 +31,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onDuplicateMaterial,
   onImportJson,
   onExportJson,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
   canExportJson,
   hasError,
   onToggleNodePicker,
@@ -37,16 +45,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   showPreview,
 }) => {
   const [showFileMenu, setShowFileMenu] = React.useState(false);
+  const [showEditMenu, setShowEditMenu] = React.useState(false);
   const buttonBase =
     'flex h-8 w-8 items-center justify-center text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900';
 
   React.useEffect(() => {
     const handlePointerDown = (): void => {
       setShowFileMenu(false);
+      setShowEditMenu(false);
     };
 
     const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') setShowFileMenu(false);
+      if (event.key === 'Escape') {
+        setShowFileMenu(false);
+        setShowEditMenu(false);
+      }
     };
 
     window.addEventListener('pointerdown', handlePointerDown);
@@ -76,6 +89,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  setShowEditMenu(false);
                   setShowFileMenu(v => !v);
                 }}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-neutral-700 hover:bg-neutral-600 text-neutral-200 border border-neutral-700 transition-colors"
@@ -103,6 +117,32 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   </button>
                   <button onClick={() => { if (!canExportJson) return; setShowFileMenu(false); onExportJson(); }} disabled={!canExportJson} className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm transition-colors ${canExportJson ? 'text-neutral-200 hover:bg-neutral-800' : 'text-neutral-500 cursor-not-allowed'}`}>
                     <Download size={14} /> Export JSON
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowFileMenu(false);
+                  setShowEditMenu(v => !v);
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium bg-neutral-700 hover:bg-neutral-600 text-neutral-200 border border-neutral-700 transition-colors"
+                style={{ minHeight: '36px' }}
+                title="Edit menu"
+              >
+                <span>Edit</span>
+                <ChevronDown size={14} className="text-neutral-400" />
+              </button>
+              {showEditMenu && (
+                <div className="absolute left-0 top-[calc(100%+8px)] w-52 rounded-xl border border-neutral-700 bg-neutral-900 shadow-2xl overflow-hidden z-50" onPointerDown={(e) => { e.stopPropagation(); }}>
+                  <button onClick={() => { setShowEditMenu(false); onUndo(); }} disabled={!canUndo} className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm transition-colors ${canUndo ? 'text-neutral-200 hover:bg-neutral-800' : 'text-neutral-500 cursor-not-allowed'}`}>
+                    <Undo2 size={14} /> Undo <span className="ml-auto text-[11px] text-neutral-500">Ctrl-Z</span>
+                  </button>
+                  <button onClick={() => { setShowEditMenu(false); onRedo(); }} disabled={!canRedo} className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm transition-colors ${canRedo ? 'text-neutral-200 hover:bg-neutral-800' : 'text-neutral-500 cursor-not-allowed'}`}>
+                    <Redo2 size={14} /> Redo <span className="ml-auto text-[11px] text-neutral-500">Ctrl-Y</span>
                   </button>
                 </div>
               )}

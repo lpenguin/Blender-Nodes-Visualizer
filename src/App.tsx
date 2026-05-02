@@ -47,9 +47,24 @@ const uniqueMaterialName = (baseName: string, existingNames: Set<string>): strin
   return nextName;
 };
 
+interface HistoryState {
+  past: GraphSchema[];
+  present: GraphSchema | null;
+  future: GraphSchema[];
+}
+
+const normalizeSchema = (schema: GraphSchema | null): GraphSchema | null => {
+  if (!schema) return null;
+  return applyConnectionState(schema);
+};
+
 function App(): React.ReactElement {
   const initialGraph = useMemo(() => parseGraphJSON(DEFAULT_JSON_EXAMPLE), []);
-  const [schema, setSchema] = useState<GraphSchema | null>(initialGraph.schema);
+  const [history, setHistory] = useState<HistoryState>({
+    past: [],
+    present: normalizeSchema(initialGraph.schema),
+    future: [],
+  });
   const [parseError, setParseError] = useState<string | null>(initialGraph.error);
   const [materialName, setMaterialName] = useState<string>('Untitled Material');
   const [savedMaterials, setSavedMaterials] = useState<SavedMaterial[]>([]);
@@ -66,6 +81,11 @@ function App(): React.ReactElement {
   const isResizingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveToastTimeoutRef = useRef<number | null>(null);
+  const gestureBaselineRef = useRef<GraphSchema | null>(null);
+
+  const schema = history.present;
+  const canUndo = history.past.length > 0;
+  const canRedo = history.future.length > 0;
 
   useEffect(() => {
     setSavedMaterials(readSavedMaterials());
@@ -74,6 +94,73 @@ function App(): React.ReactElement {
   const persistMaterials = useCallback((nextMaterials: SavedMaterial[]): void => {
     setSavedMaterials(nextMaterials);
     writeSavedMaterials(nextMaterials);
+  }, []);
+
+  const setSchemaLive = useCallback((nextSchema: GraphSchema | null): void => {
+    setHistory((current) => ({
+      ...current,
+      present: normalizeSchema(nextSchema),
+    }));
+  }, []);
+
+  const commitSchema = useCallback((nextSchema: GraphSchema | null): void => {
+    setHistory((current) => {
+      const normalized = normalizeSchema(nextSchema);
+      if (!normalized) {
+        if (current.present === null) return current;
+        return { past: [...current.past, current.present], present: null, future: [] };
+      }
+
+      if (current.present && JSON.stringify(current.present) === JSON.stringify(normalized) && !gestureBaselineRef.current) {
+        return current;
+      }
+
+      const baseline = gestureBaselineRef.current;
+      const nextPast = baseline
+        ? [...current.past, baseline]
+        : (current.present ? [...current.past, current.present] : current.past);
+
+      return {
+        past: nextPast,
+        present: normalized,
+        future: [],
+      };
+    });
+    gestureBaselineRef.current = null;
+  }, []);
+
+  const replaceSchema = useCallback((nextSchema: GraphSchema | null): void => {
+    gestureBaselineRef.current = null;
+    setHistory({ past: [], present: normalizeSchema(nextSchema), future: [] });
+  }, []);
+
+  const beginGesture = useCallback((): void => {
+    if (gestureBaselineRef.current || !history.present) return;
+    gestureBaselineRef.current = history.present;
+  }, [history.present]);
+
+  const undo = useCallback((): void => {
+    setHistory((current) => {
+      if (current.past.length === 0) return current;
+      const previous = current.past[current.past.length - 1];
+      return {
+        past: current.past.slice(0, -1),
+        present: previous,
+        future: current.present ? [current.present, ...current.future] : current.future,
+      };
+    });
+  }, []);
+
+  const redo = useCallback((): void => {
+    setHistory((current) => {
+      if (current.future.length === 0) return current;
+      const [next, ...rest] = current.future;
+      return {
+        past: current.present ? [...current.past, current.present] : current.past,
+        present: next,
+        future: rest,
+      };
+    });
   }, []);
 
   const saveCurrentMaterial = useCallback((name = materialName): void => {
@@ -96,11 +183,11 @@ function App(): React.ReactElement {
   const loadSavedMaterial = useCallback((name: string): void => {
     const material = savedMaterials.find(item => item.name === name);
     if (!material) return;
-    setSchema(material.schema);
+    commitSchema(material.schema);
     setMaterialName(material.name);
     setParseError(null);
     setShowTSLCode(false);
-  }, [savedMaterials]);
+  }, [commitSchema, savedMaterials]);
 
   const duplicateCurrentMaterial = useCallback((): void => {
     if (!schema) return;
@@ -130,19 +217,21 @@ function App(): React.ReactElement {
   const handleNodesChange = (updatedNodes: NodeData[]): void => {
     if (!schema) return;
     const newSchema = applyConnectionState({ ...schema, nodes: updatedNodes });
-    setSchema(newSchema);
+    beginGesture();
+    setSchemaLive(newSchema);
   };
 
   const handleConnectionsChange = (updatedConnections: ConnectionData[]): void => {
     if (!schema) return;
     const newSchema = applyConnectionState({ ...schema, connections: updatedConnections });
-    setSchema(newSchema);
+    beginGesture();
+    setSchemaLive(newSchema);
   };
 
   const handleInteractionEnd = (nextSchema?: GraphSchema): void => {
-    const schemaToPersist = nextSchema ? applyConnectionState(nextSchema) : schema;
+    const schemaToPersist = nextSchema ? applyConnectionState(nextSchema) : history.present;
     if (!schemaToPersist) return;
-    setSchema(schemaToPersist);
+    commitSchema(schemaToPersist);
   };
 
   const handleImportJson = (): void => {
@@ -157,7 +246,7 @@ function App(): React.ReactElement {
     const text = await file.text();
     const { schema: parsedSchema, error } = parseGraphJSON(text);
     if (parsedSchema) {
-      setSchema(parsedSchema);
+      commitSchema(parsedSchema);
       setParseError(null);
       setShowTSLCode(false);
       setMaterialName(file.name.replace(/\.json$/i, '') || 'Imported Material');
@@ -221,8 +310,8 @@ function App(): React.ReactElement {
       ...newSchema,
       nodes: [...newSchema.nodes, newNode],
     });
-    setSchema(updated);
-  }, [schema]);
+    commitSchema(updated);
+  }, [commitSchema, schema]);
 
   const handleOpenNodePicker = useCallback((screenPos?: { x: number; y: number }) => {
     setNodePickerPosition(screenPos ?? null);
@@ -281,9 +370,9 @@ function App(): React.ReactElement {
       nodes: remainingNodes,
       connections: remainingConnections,
     });
-    
-    setSchema(updated);
-  }, [schema]);
+
+    commitSchema(updated);
+  }, [commitSchema, schema]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
@@ -296,13 +385,23 @@ function App(): React.ReactElement {
         event.preventDefault();
         setShowLoadDialog(true);
       }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        undo();
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+        event.preventDefault();
+        redo();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [saveCurrentMaterial]);
+  }, [redo, saveCurrentMaterial, undo]);
 
   useEffect(() => {
     if (!saveToast) return;
@@ -344,6 +443,10 @@ function App(): React.ReactElement {
           onDuplicateMaterial={duplicateCurrentMaterial}
           onImportJson={handleImportJson}
           onExportJson={handleExportJson}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
           canExportJson={schema !== null}
           hasError={!!parseError}
           onToggleNodePicker={() => {
