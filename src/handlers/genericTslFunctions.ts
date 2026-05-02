@@ -223,7 +223,7 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     inputs: [
       { id: 'a', name: 'A', type: 'float' },
       { id: 'b', name: 'B', type: 'float' },
-      { id: 't', name: 'T', type: 'float' },
+      { id: 't', name: 'T', type: 'float', range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
     ],
     outputs: [
       { id: 'out', name: 'Result', type: 'float' },
@@ -497,7 +497,7 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     inputs: [
       { id: 'a', name: 'Color A', type: 'color' },
       { id: 'b', name: 'Color B', type: 'color' },
-      { id: 't', name: 'Factor', type: 'float' },
+      { id: 't', name: 'Factor', type: 'float', range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
     ],
     outputs: [
       { id: 'out', name: 'Color', type: 'color' },
@@ -686,7 +686,7 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     tslFn: 'mx_worley_noise_float',
     inputs: [
       { id: 'p', name: 'Position', type: 'vec2', defaultValue: [0, 0] },
-      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
       { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
     ],
     outputs: [
@@ -701,7 +701,7 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     tslFn: 'mx_worley_noise_float',
     inputs: [
       { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
-      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
       { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
     ],
     outputs: [
@@ -718,7 +718,7 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     tslFn: 'mx_worley_noise_vec2',
     inputs: [
       { id: 'p', name: 'Position', type: 'vec2', defaultValue: [0, 0] },
-      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
       { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
     ],
     outputs: [
@@ -733,7 +733,7 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     tslFn: 'mx_worley_noise_vec2',
     inputs: [
       { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
-      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
       { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
     ],
     outputs: [
@@ -750,7 +750,7 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     tslFn: 'mx_worley_noise_vec3',
     inputs: [
       { id: 'p', name: 'Position', type: 'vec2', defaultValue: [0, 0] },
-      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
       { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
     ],
     outputs: [
@@ -765,7 +765,7 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     tslFn: 'mx_worley_noise_vec3',
     inputs: [
       { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
-      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
       { id: 'metric', name: 'Metric', type: 'float', defaultValue: 0.0 },
     ],
     outputs: [
@@ -782,9 +782,9 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     tslFn: 'mx_fractal_noise_float',
     inputs: [
       { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
-      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0, range: { min: 1, max: 8, step: 1 } },
       { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
-      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
     ],
     outputs: [
       { id: 'out', name: 'Float', type: 'float' },
@@ -798,9 +798,9 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     tslFn: 'mx_fractal_noise_vec2',
     inputs: [
       { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
-      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0, range: { min: 1, max: 8, step: 1 } },
       { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
-      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
     ],
     outputs: [
       { id: 'out', name: 'Vec2', type: 'vec2' },
@@ -814,9 +814,9 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     tslFn: 'mx_fractal_noise_vec3',
     inputs: [
       { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
-      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0, range: { min: 1, max: 8, step: 1 } },
       { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
-      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
     ],
     outputs: [
       { id: 'out', name: 'Vec3', type: 'vec3' },
@@ -830,9 +830,9 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     tslFn: 'mx_fractal_noise_vec4',
     inputs: [
       { id: 'p', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
-      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0, range: { min: 1, max: 8, step: 1 } },
       { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
-      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
     ],
     outputs: [
       { id: 'out', name: 'Vec4', type: 'vec4' },
@@ -888,17 +888,17 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     description: 'Unified 2D noise with selectable type (Perlin=0, Cell=1, Worley=2, Fractal=3).',
     tslFn: 'mx_unifiednoise2d',
     inputs: [
-      { id: 'noiseType', name: 'Type', type: 'float', defaultValue: 0.0 },
+      { id: 'noiseType', name: 'Type', type: 'float', defaultValue: 0.0, range: { min: 0, max: 3, step: 1 } },
       { id: 'texcoord', name: 'Texcoord', type: 'vec2', defaultValue: [0, 0] },
       { id: 'freq', name: 'Frequency', type: 'vec2', defaultValue: [1, 1] },
       { id: 'offset', name: 'Offset', type: 'vec2', defaultValue: [0, 0] },
-      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
       { id: 'outmin', name: 'Out Min', type: 'float', defaultValue: -1.0 },
       { id: 'outmax', name: 'Out Max', type: 'float', defaultValue: 1.0 },
-      { id: 'clampoutput', name: 'Clamp', type: 'float', defaultValue: 0.0 },
-      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'clampoutput', name: 'Clamp', type: 'float', defaultValue: 0.0, range: { min: 0, max: 1, step: 1 } },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0, range: { min: 1, max: 8, step: 1 } },
       { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
-      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
     ],
     outputs: [
       { id: 'out', name: 'Float', type: 'float' },
@@ -911,17 +911,17 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     description: 'Unified 3D noise with selectable type (Perlin=0, Cell=1, Worley=2, Fractal=3).',
     tslFn: 'mx_unifiednoise3d',
     inputs: [
-      { id: 'noiseType', name: 'Type', type: 'float', defaultValue: 0.0 },
+      { id: 'noiseType', name: 'Type', type: 'float', defaultValue: 0.0, range: { min: 0, max: 3, step: 1 } },
       { id: 'position', name: 'Position', type: 'vec3', defaultValue: [0, 0, 0] },
       { id: 'freq', name: 'Frequency', type: 'vec3', defaultValue: [1, 1, 1] },
       { id: 'offset', name: 'Offset', type: 'vec3', defaultValue: [0, 0, 0] },
-      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0 },
+      { id: 'jitter', name: 'Jitter', type: 'float', defaultValue: 1.0, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
       { id: 'outmin', name: 'Out Min', type: 'float', defaultValue: -1.0 },
       { id: 'outmax', name: 'Out Max', type: 'float', defaultValue: 1.0 },
-      { id: 'clampoutput', name: 'Clamp', type: 'float', defaultValue: 0.0 },
-      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0 },
+      { id: 'clampoutput', name: 'Clamp', type: 'float', defaultValue: 0.0, range: { min: 0, max: 1, step: 1 } },
+      { id: 'octaves', name: 'Octaves', type: 'float', defaultValue: 3.0, range: { min: 1, max: 8, step: 1 } },
       { id: 'lacunarity', name: 'Lacunarity', type: 'float', defaultValue: 2.0 },
-      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5 },
+      { id: 'diminish', name: 'Diminish', type: 'float', defaultValue: 0.5, range: { min: 0, max: 1, step: 0.01, fineStep: 0.001 } },
     ],
     outputs: [
       { id: 'out', name: 'Float', type: 'float' },

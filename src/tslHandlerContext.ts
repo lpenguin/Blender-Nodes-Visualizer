@@ -2,11 +2,19 @@ import { NodeData, ConnectionData } from './types';
 
 export type TSLValue = number | number[] | string | boolean | null;
 
+export interface TSLNumericRange {
+  min: number;
+  max: number;
+  step?: number;
+  fineStep?: number;
+}
+
 export interface TSLPortDef {
   id: string;
   name: string;
   type: string;
   defaultValue?: TSLValue;
+  range?: TSLNumericRange;
 }
 
 export interface TSLNodeDef {

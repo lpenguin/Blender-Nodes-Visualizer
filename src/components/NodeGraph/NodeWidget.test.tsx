@@ -116,6 +116,21 @@ describe('NodeWidget', () => {
       screen.getByText('0.5');
     });
 
+    it('renders slider fill for ranged ports', () => {
+      const onChange = vi.fn();
+      const node = makeNode({
+        type: 'tsl:MaterialOutput',
+        inputs: [
+          { id: 'test_node_roughnessNode', name: 'Roughness', type: 'float', value: 0.5, connected: false },
+        ],
+      });
+      const { container } = render(wrap(<NodeWidget data={node} onInputValueChange={onChange} />));
+      const slider = container.querySelector('[data-slider-range="true"]');
+      expect(slider).not.toBeNull();
+      const fill = slider?.querySelector('[aria-hidden="true"] > div') as HTMLDivElement | null;
+      expect(fill?.style.width).toBe('50%');
+    });
+
     it('hides widget for connected input', () => {
       const node = makeNode({
         inputs: [{ id: 'in1', name: 'A', type: 'float', value: 0.5, connected: true }],
@@ -137,6 +152,53 @@ describe('NodeWidget', () => {
       expect(nudgeRight).toBeTruthy();
       fireEvent.click(nudgeRight!);
       expect(onChange).toHaveBeenCalledWith('test_node', 'in1', expect.any(Number));
+    });
+
+    it('uses range step when nudging ranged ports', () => {
+      const onChange = vi.fn();
+      const node = makeNode({
+        type: 'tsl:MaterialOutput',
+        inputs: [
+          { id: 'test_node_roughnessNode', name: 'Roughness', type: 'float', value: 0.5, connected: false },
+        ],
+      });
+
+      render(wrap(<NodeWidget data={node} onInputValueChange={onChange} />));
+      const buttons = screen.getAllByRole('button');
+      const nudgeRight = buttons.find(b => b.textContent === '>');
+      expect(nudgeRight).toBeTruthy();
+      fireEvent.click(nudgeRight!);
+      expect(onChange).toHaveBeenCalledWith('test_node', 'test_node_roughnessNode', 0.51);
+    });
+
+    it('maps drag position to ranged slider value', () => {
+      const onChange = vi.fn();
+      const node = makeNode({
+        type: 'tsl:MaterialOutput',
+        inputs: [
+          { id: 'test_node_roughnessNode', name: 'Roughness', type: 'float', value: 0.1, connected: false },
+        ],
+      });
+
+      const { container } = render(wrap(<NodeWidget data={node} onInputValueChange={onChange} />));
+      const slider = container.querySelector('[data-slider-range="true"]')!;
+      slider.getBoundingClientRect = () => ({
+        x: 100,
+        y: 0,
+        left: 100,
+        top: 0,
+        right: 200,
+        bottom: 28,
+        width: 100,
+        height: 28,
+        toJSON: () => ({}),
+      });
+
+      fireEvent.pointerDown(slider, { clientX: 110, clientY: 10, pointerId: 1, button: 0, pointerType: 'mouse' });
+      fireEvent.pointerMove(window, { clientX: 175, clientY: 10, pointerId: 1 });
+      fireEvent.pointerUp(window, { clientX: 175, clientY: 10, pointerId: 1 });
+
+      expect(onChange).toHaveBeenCalledWith('test_node', 'test_node_roughnessNode', 0.75);
     });
 
     it('renders color display for disconnected color input', () => {

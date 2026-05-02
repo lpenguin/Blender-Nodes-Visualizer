@@ -4,6 +4,7 @@ import { getPortColor, isValidVector3, isValidColor, isValidGradient, generateGr
 import { useToast } from '../UI/Toast';
 import { TSL_NODE_BY_TYPE } from '../../tslNodes';
 import { TSLValue } from '../../handlers';
+import type { TSLNumericRange, TSLPortDef } from '../../tslHandlerContext';
 
 interface NodeWidgetProps {
   data: NodeData;
@@ -44,6 +45,34 @@ const INT_PARTIAL_PATTERN = /^[+-]?\d*$/;
 const DRAG_PIXELS_PER_STEP = 6.5;
 const DRAG_ACTIVATION_DISTANCE = 4;
 
+const hasFiniteRange = (range?: TSLNumericRange): range is TSLNumericRange => (
+    range !== undefined
+    && Number.isFinite(range.min)
+    && Number.isFinite(range.max)
+    && range.max > range.min
+);
+
+const clampToRange = (value: number, range?: TSLNumericRange): number => {
+    if (!hasFiniteRange(range)) return value;
+    return Math.min(range.max, Math.max(range.min, value));
+};
+
+const quantizeToStep = (value: number, range: TSLNumericRange, integer: boolean, stepOverride?: number): number => {
+    const step = stepOverride ?? range.step;
+    const clampedValue = clampToRange(value, range);
+    if (step === undefined || !Number.isFinite(step) || step <= 0) {
+        return integer ? Math.round(clampedValue) : roundDraggedFloat(clampedValue);
+    }
+
+    const snapped = range.min + (Math.round((clampedValue - range.min) / step) * step);
+    const clampedSnapped = clampToRange(snapped, range);
+    return integer ? Math.round(clampedSnapped) : roundDraggedFloat(clampedSnapped);
+};
+
+const getNormalizedRangeProgress = (value: number, range: TSLNumericRange): number => (
+    (clampToRange(value, range) - range.min) / (range.max - range.min)
+);
+
 const normalizeNumericValue = (value: TSLValue, integer: boolean): number => {
     const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value ?? ''));
     if (!Number.isFinite(parsed)) return 0;
@@ -63,14 +92,19 @@ const NumericValueEditor: React.FC<{
     value: TSLValue;
     onChange: (value: number) => void;
     integer?: boolean;
-}> = ({ label, value, onChange, integer = false }) => {
+    range?: TSLNumericRange;
+}> = ({ label, value, onChange, integer = false, range }) => {
     const normalizedValue = normalizeNumericValue(value, integer);
     const [isEditing, setIsEditing] = useState(false);
     const [draftValue, setDraftValue] = useState(formatNumericValue(normalizedValue, integer));
     const inputRef = useRef<HTMLInputElement>(null);
-    const dragStateRef = useRef<{ pointerId: number; startX: number; startValue: number; moved: boolean } | null>(null);
+    const dragStateRef = useRef<{ pointerId: number; startX: number; startValue: number; moved: boolean; sliderRect?: DOMRect } | null>(null);
     const latestValueRef = useRef(normalizedValue);
     const onChangeRef = useRef(onChange);
+    const sliderRef = useRef<HTMLButtonElement>(null);
+    const isRanged = hasFiniteRange(range);
+    const finiteRange = isRanged ? range : undefined;
+    const sliderProgress = finiteRange ? getNormalizedRangeProgress(normalizedValue, finiteRange) : 0;
 
     useEffect(() => {
         latestValueRef.current = normalizedValue;
@@ -100,10 +134,18 @@ const NumericValueEditor: React.FC<{
                 document.body.style.cursor = 'ew-resize';
             }
 
-            const stepCount = Math.trunc(dx / DRAG_PIXELS_PER_STEP);
-            const nextValue = integer
-                ? Math.round(dragState.startValue + (stepCount * 1))
-                : roundDraggedFloat(dragState.startValue + (stepCount * (event.shiftKey ? 0.01 : 0.1)));
+            let nextValue: number;
+            if (finiteRange && dragState.sliderRect) {
+                const relativeX = Math.min(dragState.sliderRect.width, Math.max(0, event.clientX - dragState.sliderRect.left));
+                const progress = dragState.sliderRect.width > 0 ? relativeX / dragState.sliderRect.width : 0;
+                const rawValue = finiteRange.min + (progress * (finiteRange.max - finiteRange.min));
+                nextValue = quantizeToStep(rawValue, finiteRange, integer, event.shiftKey ? finiteRange.fineStep : undefined);
+            } else {
+                const stepCount = Math.trunc(dx / DRAG_PIXELS_PER_STEP);
+                nextValue = integer
+                    ? Math.round(dragState.startValue + (stepCount * 1))
+                    : roundDraggedFloat(dragState.startValue + (stepCount * (event.shiftKey ? 0.01 : 0.1)));
+            }
 
             if (nextValue !== latestValueRef.current) {
                 onChangeRef.current(nextValue);
@@ -131,7 +173,7 @@ const NumericValueEditor: React.FC<{
             window.removeEventListener('pointerup', handlePointerUp);
             document.body.style.cursor = '';
         };
-    }, [integer]);
+    }, [integer, isRanged, range]);
 
     const commitDraftValue = (): void => {
         const trimmed = draftValue.trim();
@@ -150,16 +192,20 @@ const NumericValueEditor: React.FC<{
             return;
         }
 
-        const nextValue = integer ? Math.round(parsed) : roundDraggedFloat(parsed);
+        const nextValue = finiteRange
+            ? quantizeToStep(parsed, finiteRange, integer)
+            : integer ? Math.round(parsed) : roundDraggedFloat(parsed);
         onChange(nextValue);
         setDraftValue(formatNumericValue(nextValue, integer));
         setIsEditing(false);
     };
 
     const nudgeValue = (direction: -1 | 1): void => {
-        const nextValue = integer
-            ? Math.round(normalizedValue + (direction * 1))
-            : roundDraggedFloat(normalizedValue + (direction * 0.1));
+        const nextValue = finiteRange
+            ? quantizeToStep(normalizedValue + (direction * (finiteRange.step ?? (integer ? 1 : 0.1))), finiteRange, integer)
+            : integer
+                ? Math.round(normalizedValue + (direction * 1))
+                : roundDraggedFloat(normalizedValue + (direction * 0.1));
         onChange(nextValue);
     };
 
@@ -201,7 +247,9 @@ const NumericValueEditor: React.FC<{
             ) : (
                 <button
                     type="button"
-                    className="flex h-full min-w-0 flex-1 cursor-ew-resize items-center gap-2 bg-transparent px-2 text-[11px] text-neutral-100"
+                    ref={sliderRef}
+                    className={`relative flex h-full min-w-0 flex-1 items-center gap-2 overflow-hidden bg-transparent px-2 text-[11px] text-neutral-100 ${isRanged ? 'cursor-ew-resize' : 'cursor-ew-resize'}`}
+                    data-slider-range={isRanged ? 'true' : undefined}
                     onPointerDown={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -210,11 +258,23 @@ const NumericValueEditor: React.FC<{
                             startX: event.clientX,
                             startValue: latestValueRef.current,
                             moved: false,
+                            sliderRect: finiteRange ? sliderRef.current?.getBoundingClientRect() : undefined,
                         };
                     }}
                 >
-                    <span className="min-w-0 flex-1 truncate text-left text-neutral-100">{label}</span>
-                    <span className="shrink-0 text-right font-mono text-neutral-100">{formatNumericValue(normalizedValue, integer)}</span>
+                    {finiteRange && (
+                        <div
+                            className="pointer-events-none absolute inset-0 bg-sky-500/10"
+                            aria-hidden="true"
+                        >
+                            <div
+                                className="h-full bg-sky-500/60"
+                                style={{ width: `${String(sliderProgress * 100)}%` }}
+                            />
+                        </div>
+                    )}
+                    <span className="relative z-10 min-w-0 flex-1 truncate text-left text-neutral-100">{label}</span>
+                    <span className="relative z-10 shrink-0 text-right font-mono text-neutral-100">{formatNumericValue(normalizedValue, integer)}</span>
                 </button>
             )}
 
@@ -446,7 +506,7 @@ const GradientDisplay: React.FC<{ value: GradientStop[] }> = ({ value }) => {
   );
 };
 
-const ValueWidget: React.FC<{ type: string; value: TSLValue; label?: string; onChange?: (value: TSLValue) => void }> = ({ type, value, label, onChange }) => {
+const ValueWidget: React.FC<{ type: string; value: TSLValue; label?: string; range?: TSLNumericRange; onChange?: (value: TSLValue) => void }> = ({ type, value, label, range, onChange }) => {
     const { showToast } = useToast();
     const copy = (val: string): void => {
         void navigator.clipboard.writeText(val);
@@ -455,7 +515,7 @@ const ValueWidget: React.FC<{ type: string; value: TSLValue; label?: string; onC
 
     if (type === 'float') {
         if (onChange) {
-            return <NumericValueEditor label={label} value={value} onChange={onChange} />;
+            return <NumericValueEditor label={label} value={value} onChange={onChange} range={range} />;
         }
         const num = normalizeNumericValue(value, false);
         if (isNaN(num)) return <span className="text-red-500 text-[10px]">NaN</span>;
@@ -470,7 +530,7 @@ const ValueWidget: React.FC<{ type: string; value: TSLValue; label?: string; onC
     }
     if (type === 'int') {
         if (onChange) {
-            return <NumericValueEditor label={label} value={value} onChange={onChange} integer />;
+            return <NumericValueEditor label={label} value={value} onChange={onChange} integer range={range} />;
         }
         const num = normalizeNumericValue(value, true);
         return (
@@ -585,11 +645,12 @@ const getPortHighlightState = (portId: string, activePortId?: string | null, hov
 
 const InputRow: React.FC<{
     port: NodePort;
+    portDef?: TSLPortDef;
     onValueChange?: (portId: string, value: TSLValue) => void;
     activePortId?: string | null;
     hoveredPortId?: string | null;
     hoveredPortValid?: boolean;
-}> = ({ port, onValueChange, activePortId, hoveredPortId, hoveredPortValid }) => {
+}> = ({ port, portDef, onValueChange, activePortId, hoveredPortId, hoveredPortValid }) => {
     // Logic:
     // Connected: Show Dot + Label. (Widget hidden).
     // Not Connected:
@@ -621,28 +682,28 @@ const InputRow: React.FC<{
                       <span className="text-neutral-300 text-xs truncate select-none flex-1">{port.name}</span>
                   )}
 
-                  {showWidget && embedLabelInWidget && (
-                      <div className="flex-1 pr-1">
-                          <ValueWidget type={port.type} value={port.value as TSLValue} label={port.name} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
-                      </div>
-                  )}
+                   {showWidget && embedLabelInWidget && (
+                       <div className="flex-1 pr-1">
+                            <ValueWidget type={port.type} value={port.value as TSLValue} label={port.name} range={portDef?.range} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
+                        </div>
+                    )}
 
-                  {showWidget && showInlineColorWidget && (
-                      <ValueWidget type={port.type} value={port.value as TSLValue} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
-                  )}
+                   {showWidget && showInlineColorWidget && (
+                       <ValueWidget type={port.type} value={port.value as TSLValue} range={portDef?.range} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
+                   )}
 
                   {/* Inline Widget (if not connected and small) */}
-                  {showWidget && !isLargeWidget && !embedLabelInWidget && !showInlineColorWidget && (
-                      <ValueWidget type={port.type} value={port.value as TSLValue} label={port.name} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
-                  )}
+                   {showWidget && !isLargeWidget && !embedLabelInWidget && !showInlineColorWidget && (
+                       <ValueWidget type={port.type} value={port.value as TSLValue} label={port.name} range={portDef?.range} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
+                   )}
               </div>
 
               {/* Block Widget (if not connected and large) */}
               {showWidget && isLargeWidget && (
                   <div className="pl-4 pr-1">
-                       <ValueWidget type={port.type} value={port.value as TSLValue} label={port.name} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
-                  </div>
-              )}
+                       <ValueWidget type={port.type} value={port.value as TSLValue} label={port.name} range={portDef?.range} onChange={onValueChange ? (value) => { onValueChange(port.id, value); } : undefined} />
+                   </div>
+               )}
          </div>
     )
 }
@@ -695,6 +756,7 @@ const PropertyRow: React.FC<{ property: NodeProperty }> = ({ property }) => {
 
 export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, onInputValueChange, isSelected, activePortId, hoveredPortId, hoveredPortValid }) => {
   const { x, y } = data.position;
+  const nodeDef = TSL_NODE_BY_TYPE.get(data.type);
   // Handle optional size gracefully
   const width = data.size?.width ?? 200;
   const height = data.size?.height ?? 100;
@@ -794,12 +856,13 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, onInputValueChange
         {data.inputs && data.inputs.length > 0 && (
              <div className="flex flex-col gap-[4px] w-full">
                  {data.inputs.map((port) => (
-                    <InputRow
-                        key={port.id}
-                        port={port}
-                        onValueChange={onInputValueChange ? (portId, value) => { onInputValueChange(data.id, portId, value); } : undefined}
-                        activePortId={activePortId}
-                        hoveredPortId={hoveredPortId}
+                     <InputRow
+                         key={port.id}
+                         port={port}
+                         portDef={nodeDef?.inputs.find(def => def.id === port.id || port.id.endsWith(`_${def.id}`))}
+                         onValueChange={onInputValueChange ? (portId, value) => { onInputValueChange(data.id, portId, value); } : undefined}
+                         activePortId={activePortId}
+                         hoveredPortId={hoveredPortId}
                         hoveredPortValid={hoveredPortValid}
                     />
                  ))}
