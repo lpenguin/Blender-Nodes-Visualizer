@@ -37,7 +37,7 @@ interface ConnectionDragState {
 }
 
 interface SelectionBox {
-  startX: number; // Screen coords
+  startX: number; // Container-relative coords
   startY: number;
   currentX: number;
   currentY: number;
@@ -91,6 +91,11 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     };
   };
 
+  const screenToContainer = (clientX: number, clientY: number): { x: number; y: number } => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    return { x: clientX - (rect?.left ?? 0), y: clientY - (rect?.top ?? 0) };
+  };
+
   const getPointerDistance = (p1: {x:number, y:number}, p2: {x:number, y:number}): number => {
       return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
   };
@@ -113,7 +118,8 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
   };
 
   const getHoveredPort = (clientX: number, clientY: number): PortMeta | null => {
-    const portAtPointer = getPortAtPointer(clientX, clientY);
+    const local = screenToContainer(clientX, clientY);
+    const portAtPointer = getPortAtPointer(local.x, local.y);
     if (portAtPointer) return portAtPointer;
     if (typeof document === 'undefined') return null;
     return getPortMetaFromElement(document.elementFromPoint(clientX, clientY));
@@ -274,14 +280,16 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
     const resizeHandle = target.getAttribute('data-resize-handle');
     const clickedNodeEl = target.closest('[data-node-id]');
     const clickedNodeId = clickedNodeEl?.getAttribute('data-node-id');
-    const clickedPort = getPortAtPointer(e.clientX, e.clientY) ?? getPortMetaFromElement(target);
+    const local = screenToContainer(e.clientX, e.clientY);
+    const clickedPort = getPortAtPointer(local.x, local.y) ?? getPortMetaFromElement(target);
 
     // --- CHECK MULTI-TOUCH (PINCH) ---
     if (activePointersRef.current.size === 2) {
         const points: { x: number; y: number }[] = Array.from(activePointersRef.current.values());
         {
-            const dist = getPointerDistance(points[0], points[1]);
-            const center = getPointerCenter(points[0], points[1]);
+            const containerPoints = points.map(p => screenToContainer(p.x, p.y));
+            const dist = getPointerDistance(containerPoints[0], containerPoints[1]);
+            const center = getPointerCenter(containerPoints[0], containerPoints[1]);
 
             setMode('PINCH_ZOOM');
             pinchRef.current = {
@@ -404,12 +412,13 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
                 setMode('PANNING');
             } else {
                 // Desktop: Box Select
+                const local = screenToContainer(e.clientX, e.clientY);
                 setMode('BOX_SELECTING');
                 setSelectionBox({
-                    startX: e.clientX,
-                    startY: e.clientY,
-                    currentX: e.clientX,
-                    currentY: e.clientY
+                    startX: local.x,
+                    startY: local.y,
+                    currentX: local.x,
+                    currentY: local.y
                 });
                 if (!e.shiftKey) setSelectedNodeIds(new Set());
             }
@@ -432,8 +441,9 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
         const points: { x: number; y: number }[] = Array.from(activePointersRef.current.values());
         
         {
-            const currDist = getPointerDistance(points[0], points[1]);
-            const currCenter = getPointerCenter(points[0], points[1]);
+            const containerPoints = points.map(p => screenToContainer(p.x, p.y));
+            const currDist = getPointerDistance(containerPoints[0], containerPoints[1]);
+            const currCenter = getPointerCenter(containerPoints[0], containerPoints[1]);
             
             const { startDist, startScale, startViewportPos, startCenter } = pinchRef.current;
             
@@ -546,14 +556,15 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
 
     // --- BOX SELECT ---
     else if (mode === 'BOX_SELECTING') {
-       setSelectionBox(prev => prev ? ({ ...prev, currentX: e.clientX, currentY: e.clientY }) : null);
+       const local = screenToContainer(e.clientX, e.clientY);
+       setSelectionBox(prev => prev ? ({ ...prev, currentX: local.x, currentY: local.y }) : null);
        
        if (selectionBox) {
            const sb = selectionBox;
-           const boxLeft = Math.min(sb.startX, e.clientX);
-           const boxTop = Math.min(sb.startY, e.clientY);
-           const boxRight = Math.max(sb.startX, e.clientX);
-           const boxBottom = Math.max(sb.startY, e.clientY);
+           const boxLeft = Math.min(sb.startX, local.x);
+           const boxTop = Math.min(sb.startY, local.y);
+           const boxRight = Math.max(sb.startX, local.x);
+           const boxBottom = Math.max(sb.startY, local.y);
 
            const currentSelection = new Set<string>();
            const v = viewportRef.current;
