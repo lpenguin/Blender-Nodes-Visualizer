@@ -164,7 +164,7 @@ describe('GraphCanvas', () => {
       fireEvent.pointerUp(container.firstChild!, { clientX: 50, clientY: 50, pointerId: 1 });
       expect(onConnectionsChange).toHaveBeenCalled();
       // The existing connection should be removed
-      const callArgs = onConnectionsChange.mock.calls[0][0];
+      const callArgs = onConnectionsChange.mock.calls[0]?.[0] as { from: string; to: string }[];
       expect(callArgs).not.toContainEqual({ from: 'a_out', to: 'b_in' });
     });
   });
@@ -399,7 +399,7 @@ describe('GraphCanvas', () => {
       fireEvent.pointerUp(container.firstChild!, { clientX: 450, clientY: 150, pointerId: 2 });
       fireEvent.keyDown(container.firstChild!, { key: 'Delete' });
       expect(onDeleteNodes).toHaveBeenCalled();
-      const calledIds = onDeleteNodes.mock.calls[0][0];
+      const calledIds = onDeleteNodes.mock.calls[0]?.[0] as string[];
       expect(calledIds).toContain('node_a');
       expect(calledIds).toContain('node_b');
     });

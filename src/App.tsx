@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { GraphCanvas } from './components/NodeGraph/GraphCanvas';
 import { Toolbar } from './components/UI/Toolbar';
-import { JsonEditor } from './components/UI/JsonEditor';
 import { ToastProvider } from './components/UI/Toast';
 import { NodePicker } from './components/UI/NodePicker';
 import { TSLCodePanel } from './components/UI/TSLCodePanel';
@@ -13,10 +12,9 @@ import { GraphSchema, NodeData, ConnectionData } from './types';
 import { TSLNodeDef } from './tslNodes';
 
 function App(): React.ReactElement {
-  const [jsonInput, setJsonInput] = useState<string>(DEFAULT_JSON_EXAMPLE);
-  const [schema, setSchema] = useState<GraphSchema | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
-  const [showEditor, setShowEditor] = useState<boolean>(false);
+  const initialGraph = useMemo(() => parseGraphJSON(DEFAULT_JSON_EXAMPLE), []);
+  const [schema, setSchema] = useState<GraphSchema | null>(initialGraph.schema);
+  const [parseError, setParseError] = useState<string | null>(initialGraph.error);
   const [showNodePicker, setShowNodePicker] = useState<boolean>(false);
   const [nodePickerPosition, setNodePickerPosition] = useState<{ x: number; y: number } | null>(null);
   const [nodePickerWorldPosition, setNodePickerWorldPosition] = useState<{ x: number; y: number } | null>(null);
@@ -26,6 +24,7 @@ function App(): React.ReactElement {
   const [previewWidth, setPreviewWidth] = useState<number>(300);
   const [previewShape, setPreviewShape] = useState<'cube' | 'sphere'>('cube');
   const isResizingRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleResizeStart = (e: React.PointerEvent): void => {
     isResizingRef.current = true;
@@ -44,30 +43,6 @@ function App(): React.ReactElement {
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
-  // Parse JSON whenever input changes
-  useEffect(() => {
-    if (!jsonInput.trim()) {
-      setSchema(null);
-      setParseError(null);
-      return;
-    }
-
-    const { schema: parsedSchema, error } = parseGraphJSON(jsonInput);
-    if (parsedSchema) {
-      setSchema(parsedSchema);
-      setParseError(null);
-    } else {
-      setParseError(error);
-    }
-  }, [jsonInput]);
-
-  // Initial responsive check
-  useEffect(() => {
-    if (window.innerWidth > 768) {
-      setShowEditor(false);
-    }
-  }, []);
-
   const handleNodesChange = (updatedNodes: NodeData[]): void => {
     if (!schema) return;
     const newSchema = applyConnectionState({ ...schema, nodes: updatedNodes });
@@ -83,7 +58,42 @@ function App(): React.ReactElement {
   const handleInteractionEnd = (nextSchema?: GraphSchema): void => {
     const schemaToPersist = nextSchema ? applyConnectionState(nextSchema) : schema;
     if (!schemaToPersist) return;
-    setJsonInput(JSON.stringify(schemaToPersist, null, 2));
+    setSchema(schemaToPersist);
+  };
+
+  const handleImportJson = (): void => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const text = await file.text();
+    const { schema: parsedSchema, error } = parseGraphJSON(text);
+    if (parsedSchema) {
+      setSchema(parsedSchema);
+      setParseError(null);
+      setShowTSLCode(false);
+      return;
+    }
+
+    setParseError(error);
+  };
+
+  const handleExportJson = (): void => {
+    if (!schema) return;
+
+    const blob = new Blob([JSON.stringify(schema, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'graph.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   };
 
   // Add a node from the picker onto the canvas
@@ -127,7 +137,6 @@ function App(): React.ReactElement {
       nodes: [...newSchema.nodes, newNode],
     });
     setSchema(updated);
-    setJsonInput(JSON.stringify(updated, null, 2));
   }, [schema]);
 
   const handleOpenNodePicker = useCallback((screenPos?: { x: number; y: number }) => {
@@ -189,7 +198,6 @@ function App(): React.ReactElement {
     });
     
     setSchema(updated);
-    setJsonInput(JSON.stringify(updated, null, 2));
   }, [schema]);
 
   return (
@@ -198,9 +206,17 @@ function App(): React.ReactElement {
         className="w-screen h-screen flex flex-col bg-neutral-900 overflow-hidden text-neutral-200 font-sans"
         onContextMenu={(e) => { e.preventDefault(); }}
       >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(event) => { void handleFileImport(event); }}
+        />
         <Toolbar
-          onToggleEditor={() => { setShowEditor(!showEditor); }}
-          showEditor={showEditor}
+          onImportJson={handleImportJson}
+          onExportJson={handleExportJson}
+          canExportJson={schema !== null}
           hasError={!!parseError}
           onToggleNodePicker={() => {
             if (showNodePicker) {
@@ -249,13 +265,6 @@ function App(): React.ReactElement {
               isOpen={showTSLCode}
               code={tslCode}
               onClose={() => { setShowTSLCode(false); }}
-            />
-
-            {/* JSON Editor Overlay */}
-            <JsonEditor
-              value={jsonInput}
-              onChange={setJsonInput}
-              isOpen={showEditor}
             />
 
             {/* Error Toast */}

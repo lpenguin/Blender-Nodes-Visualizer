@@ -176,12 +176,16 @@ export const applyConnectionState = (schema: GraphSchema): GraphSchema => {
 
 export const parseGraphJSON = (json: string): { schema: GraphSchema | null; error: string | null } => {
   try {
-    const parsed = JSON.parse(json) as GraphSchema;
+    const parsed = JSON.parse(json) as Partial<GraphSchema>;
     if (!Array.isArray(parsed.nodes)) {
       return { schema: null, error: "Invalid JSON: 'nodes' array missing." };
     }
     
-    const schema: GraphSchema = { ...parsed, connections: parsed.connections ?? [] };
+    const schema: GraphSchema = {
+      ...parsed,
+      nodes: parsed.nodes,
+      connections: Array.isArray(parsed.connections) ? parsed.connections : [],
+    };
     return { schema: applyConnectionState(schema), error: null };
   } catch (e: unknown) {
     return { schema: null, error: (e as Error).message || "Invalid JSON syntax." };

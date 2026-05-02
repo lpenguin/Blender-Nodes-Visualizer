@@ -1,9 +1,10 @@
 import React from 'react';
-import { X, FileJson, PlusSquare, Code2, Box } from 'lucide-react';
+import { Upload, Download, PlusSquare, Code2, Box } from 'lucide-react';
 
 interface ToolbarProps {
-  onToggleEditor: () => void;
-  showEditor: boolean;
+  onImportJson: () => void;
+  onExportJson: () => void;
+  canExportJson: boolean;
   hasError: boolean;
   onToggleNodePicker: () => void;
   showNodePicker: boolean;
@@ -14,8 +15,9 @@ interface ToolbarProps {
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
-  onToggleEditor,
-  showEditor,
+  onImportJson,
+  onExportJson,
+  canExportJson,
   hasError,
   onToggleNodePicker,
   showNodePicker,
@@ -97,19 +99,31 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <span className="hidden sm:inline">{showTSLCode ? 'Close Code' : 'Export TSL'}</span>
         </button>
 
-        {/* JSON Editor toggle */}
+        {/* Import JSON */}
         <button
-          onClick={onToggleEditor}
-          className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-            showEditor
-              ? 'bg-neutral-800 text-white border border-neutral-700'
-              : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-200 border border-neutral-700'
+          onClick={onImportJson}
+          className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-neutral-700 hover:bg-neutral-600 text-neutral-200 border border-neutral-700"
+          style={{ minHeight: '36px' }}
+          title="Import graph from JSON file"
+        >
+          <Upload size={16} />
+          <span className="hidden sm:inline">Import JSON</span>
+        </button>
+
+        {/* Export JSON */}
+        <button
+          onClick={onExportJson}
+          disabled={!canExportJson}
+          className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors border ${
+            canExportJson
+              ? 'bg-neutral-700 hover:bg-neutral-600 text-neutral-200 border-neutral-700'
+              : 'bg-neutral-800 text-neutral-500 border-neutral-800 cursor-not-allowed'
           }`}
           style={{ minHeight: '36px' }}
-          title="Import/Edit JSON"
+          title="Export current graph as JSON"
         >
-          {showEditor ? <X size={16} /> : <FileJson size={16} />}
-          <span className="hidden sm:inline">{showEditor ? 'Close JSON' : 'Import JSON'}</span>
+          <Download size={16} />
+          <span className="hidden sm:inline">Export JSON</span>
         </button>
       </div>
     </div>

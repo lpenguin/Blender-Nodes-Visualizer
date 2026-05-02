@@ -22,7 +22,7 @@ describe('topoSort', () => {
     const nodes = [makeNode({ id: 'a' }), makeNode({ id: 'b' })];
     const result = topoSort(nodes, []);
     expect(result).toHaveLength(2);
-    expect(result.map(n => n.id)).toEqual(expect.arrayContaining(['a', 'b']));
+    expect(result.map(n => n.id).sort()).toEqual(['a', 'b']);
   });
 
   it('orders dependency before dependent', () => {
