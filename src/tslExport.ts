@@ -8,6 +8,8 @@ function formatDefaultValue(type: string, value: TSLValue): string {
   switch (type) {
     case 'float':
       return typeof value === 'number' ? value.toFixed(4) : String(value);
+    case 'boolean':
+      return value === true ? 'true' : 'false';
     case 'vec2':
       if (Array.isArray(value) && value.length >= 2)
         return `vec2(${value[0].toFixed(4)}, ${value[1].toFixed(4)})`;
@@ -44,6 +46,17 @@ function getInputExpression(
     if (varName) return varName;
   }
   return formatDefaultValue(portType, defaultValue);
+}
+
+function getMaterialInputDef(defInputs: { id: string; type: string; defaultValue?: TSLValue }[], inputPort: { id: string; type: string }, index: number): { id: string; type: string; defaultValue?: TSLValue } | undefined {
+  void index;
+  return defInputs.find(portDef => inputPort.id === portDef.id || inputPort.id.endsWith(`_${portDef.id}`));
+}
+
+function getMaterialCatalogPortId(nodeId: string, inputPortId: string, matchedPortId?: string): string {
+  if (matchedPortId) return matchedPortId;
+  const prefix = `${nodeId}_`;
+  return inputPortId.startsWith(prefix) ? inputPortId.slice(prefix.length) : inputPortId;
 }
 
 const GENERIC_TSL_FNS = new Set([
@@ -120,7 +133,7 @@ export function exportTSL(schema: GraphSchema): string {
     }
   }
 
-  const CONSTRUCTOR_TYPES = new Set(['float', 'color', 'int']);
+  const CONSTRUCTOR_TYPES = new Set(['float', 'color', 'int', 'boolean']);
 
   for (const matNode of materialNodes) {
     const def = TSL_NODE_BY_TYPE.get(matNode.type);
@@ -133,19 +146,22 @@ export function exportTSL(schema: GraphSchema): string {
     // Pass 1: collect constructor params for unconnected float/color/int
     for (let i = 0; i < inputs.length; i++) {
       const inputPort = inputs[i];
-      const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
-      const portType = inputPort.type;
+      const portDef = getMaterialInputDef(def.inputs, inputPort, i);
+      const catalogPortId = getMaterialCatalogPortId(matNode.id, inputPort.id, portDef?.id);
+      const portType = portDef?.type ?? inputPort.type;
       const conn = connections.find(c => c.to === inputPort.id);
       if (conn || !CONSTRUCTOR_TYPES.has(portType)) continue;
 
       const legacyName = catalogPortId.replace(/Node$/, '');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const defaultVal = inputPort.value ?? def.inputs[i]?.defaultValue ?? null;
+      const defaultVal = inputPort.value ?? portDef?.defaultValue ?? null;
 
       if (portType === 'color') {
         const v = Array.isArray(defaultVal) ? defaultVal : [1, 1, 1];
         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         constructorParts.push(`${legacyName}: new THREE.Color(${(v[0] ?? 1).toFixed(4)}, ${(v[1] ?? 1).toFixed(4)}, ${(v[2] ?? 1).toFixed(4)})`);
+      } else if (portType === 'boolean') {
+        constructorParts.push(`${legacyName}: ${defaultVal === true ? 'true' : 'false'}`);
       } else {
         const numVal = typeof defaultVal === 'number' ? defaultVal : 0;
         constructorParts.push(`${legacyName}: ${portType === 'int' ? String(Math.round(numVal)) : numVal.toFixed(4)}`);
@@ -159,7 +175,8 @@ export function exportTSL(schema: GraphSchema): string {
     // Pass 2: set *Node props for connected inputs
     for (let i = 0; i < inputs.length; i++) {
       const inputPort = inputs[i];
-      const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
+      const portDef = getMaterialInputDef(def.inputs, inputPort, i);
+      const catalogPortId = getMaterialCatalogPortId(matNode.id, inputPort.id, portDef?.id);
       const conn = connections.find(c => c.to === inputPort.id);
       if (!conn) continue;
       const sourceExpr = outputVarMap.get(conn.from);

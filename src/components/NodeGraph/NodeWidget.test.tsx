@@ -29,7 +29,7 @@ describe('NodeWidget', () => {
 
   it('positions node at given coordinates', () => {
     const { container } = render(wrap(<NodeWidget data={makeNode()} />));
-    const el = container.querySelector('[data-node-id="test_node"]')!;
+    const el = container.querySelector<HTMLElement>('[data-node-id="test_node"]')!;
     expect(el.style.left).toBe('50px');
     expect(el.style.top).toBe('80px');
   });
@@ -146,6 +146,26 @@ describe('NodeWidget', () => {
       const colorDiv = container.querySelector('[style*="background"]');
       expect(colorDiv).not.toBeNull();
     });
+
+    it('renders boolean switch for disconnected boolean input', () => {
+      const node = makeNode({
+        inputs: [{ id: 'enabled', name: 'Transparent', type: 'boolean', value: false, connected: false }],
+      });
+      render(wrap(<NodeWidget data={node} onInputValueChange={() => undefined} />));
+      const toggle = screen.getByRole('switch', { name: 'Transparent' });
+      expect(toggle.getAttribute('aria-checked')).toBe('false');
+      screen.getByText('false');
+    });
+
+    it('calls onInputValueChange when boolean switch is toggled', () => {
+      const onChange = vi.fn();
+      const node = makeNode({
+        inputs: [{ id: 'enabled', name: 'Transparent', type: 'boolean', value: false, connected: false }],
+      });
+      render(wrap(<NodeWidget data={node} onInputValueChange={onChange} />));
+      fireEvent.click(screen.getByRole('switch', { name: 'Transparent' }));
+      expect(onChange).toHaveBeenCalledWith('test_node', 'enabled', true);
+    });
   });
 
   describe('header colors by type', () => {
@@ -164,6 +184,12 @@ describe('NodeWidget', () => {
     it('input nodes get amber header', () => {
       const { container } = render(wrap(<NodeWidget data={makeNode({ type: 'tsl:UV' })} />));
       const header = container.querySelector('.bg-amber-900\\/70');
+      expect(header).not.toBeNull();
+    });
+
+    it('boolean input nodes get sky header', () => {
+      const { container } = render(wrap(<NodeWidget data={makeNode({ type: 'tsl:BooleanNode' })} />));
+      const header = container.querySelector('.bg-sky-900\\/70');
       expect(header).not.toBeNull();
     });
   });
@@ -251,7 +277,7 @@ describe('NodeWidget', () => {
       const node = makeNode({
         properties: [{ id: 'prop1', name: 'My Prop', type: 'float', value: 1.0 }],
       });
-      const { container } = render(wrap(<NodeWidget data={node} />));
+      render(wrap(<NodeWidget data={node} />));
       const propLabel = screen.getByText('My Prop');
       expect(propLabel.className).toContain('italic');
     });

@@ -4,6 +4,7 @@ export { getPlugin };
 export type { NodeBuildContext, NodeExportContext, TSLValue };
 import { builtinPlugins } from './builtinSources';
 import { UniformFloatPlugin, UniformVec3Plugin, UniformColorPlugin } from './uniforms';
+import { BooleanNodePlugin } from './boolean';
 import { SplitXYZPlugin } from './splitXYZ';
 import { CombineXYZPlugin } from './combineXYZ';
 import { TextureSamplePlugin } from './textureSample';
@@ -15,6 +16,7 @@ const allPlugins: TSLNodePlugin[] = [
   UniformFloatPlugin,
   UniformVec3Plugin,
   UniformColorPlugin,
+  BooleanNodePlugin,
   SplitXYZPlugin,
   CombineXYZPlugin,
   TextureSamplePlugin,

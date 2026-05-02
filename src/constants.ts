@@ -8,6 +8,7 @@ export const TYPE_COLORS: Record<string, string> = {
   color:   '#C7C729', // Yellow
   mat3:    '#C77D29', // Orange
   mat4:    '#C77D29', // Orange
+  boolean: '#63C763', // Green
   bool:    '#63C763', // Green
   int:     '#85A1A1', // Slate
   // Legacy Blender types (kept for JSON back-compat)
@@ -101,6 +102,7 @@ export const DEFAULT_JSON_EXAMPLE = `{
         { "id": "emissiveIntensityNode", "name": "Emissive Strength", "type": "float", "value": 0.0, "connected": false },
         { "id": "normalNode", "name": "Normal", "type": "vec3", "connected": false },
         { "id": "opacityNode", "name": "Opacity", "type": "float", "value": 1.0, "connected": false },
+        { "id": "transparent", "name": "Transparent", "type": "boolean", "value": false, "connected": false },
         { "id": "positionNode", "name": "Position", "type": "vec3", "connected": false }
       ],
       "outputs": []

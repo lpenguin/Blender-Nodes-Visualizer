@@ -21,6 +21,20 @@ describe('exportTSL', () => {
   });
 
   describe('builtin source nodes', () => {
+    it('generates Boolean node', () => {
+      const schema: GraphSchema = {
+        nodes: [makeNode({
+          id: 'bool1',
+          type: 'tsl:BooleanNode',
+          inputs: [{ id: 'bool1_value', name: 'Value', type: 'boolean', value: true }],
+          outputs: [{ id: 'bool1_out', name: 'Boolean', type: 'boolean' }],
+        })],
+        connections: [],
+      };
+      const result = exportTSL(schema);
+      expect(result).toContain('const bool1 = true;');
+    });
+
     it('generates UV node', () => {
       const schema: GraphSchema = {
         nodes: [makeNode({ id: 'uv1', type: 'tsl:UV', outputs: [{ id: 'uv1_out', name: 'UV', type: 'vec2' }] })],
@@ -867,6 +881,7 @@ describe('exportTSL', () => {
               { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
             { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
             { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
+            { id: 'mat1_transparent', name: 'Transparent', type: 'boolean', value: true },
             { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
           ],
           outputs: [],
@@ -876,6 +891,42 @@ describe('exportTSL', () => {
       const result = exportTSL(schema);
       expect(result).toContain('roughness: 0.8000');
       expect(result).toContain('metalness: 0.5000');
+      expect(result).toContain('transparent: true');
+    });
+
+    it('assigns connected boolean material inputs as properties', () => {
+      const schema: GraphSchema = {
+        nodes: [
+          makeNode({
+            id: 'bool1',
+            type: 'tsl:BooleanNode',
+            inputs: [{ id: 'bool1_value', name: 'Value', type: 'boolean', value: true }],
+            outputs: [{ id: 'bool1_out', name: 'Boolean', type: 'boolean' }],
+          }),
+          makeNode({
+            id: 'mat1',
+            type: 'tsl:MaterialOutput',
+            inputs: [
+              { id: 'mat1_colorNode', name: 'Color', type: 'color' },
+              { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
+              { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
+              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
+              { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
+              { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
+              { id: 'mat1_transparent', name: 'Transparent', type: 'boolean', value: false },
+              { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
+            ],
+            outputs: [],
+          }),
+        ],
+        connections: [
+          { from: 'bool1_out', to: 'mat1_transparent' },
+        ],
+      };
+      const result = exportTSL(schema);
+      expect(result).toContain('const bool1 = true;');
+      expect(result).toContain('mat1.transparent = bool1;');
     });
 
     it('passes color defaults as THREE.Color constructor params', () => {

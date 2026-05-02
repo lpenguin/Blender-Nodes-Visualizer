@@ -46,6 +46,7 @@ function formatDefault(type: string, value: TSLValue): TSLNode {
   if (value === null) return float(0);
   switch (type) {
     case 'float': return float(typeof value === 'number' ? value : 0);
+    case 'boolean': return value === true;
     case 'vec2': {
       const v = Array.isArray(value) ? value : [0, 0];
       return vec2(v[0] ?? 0, v[1] ?? 0);
@@ -82,6 +83,17 @@ function getInputValue(
     }
     return formatDefault(portType, defaultValue);
   }
+
+function getMaterialInputDef(defInputs: { id: string; type: string; defaultValue?: TSLValue }[], inputPort: { id: string; type: string }, index: number): { id: string; type: string; defaultValue?: TSLValue } | undefined {
+  void index;
+  return defInputs.find(portDef => inputPort.id === portDef.id || inputPort.id.endsWith(`_${portDef.id}`));
+}
+
+function getMaterialCatalogPortId(nodeId: string, inputPortId: string, matchedPortId?: string): string {
+  if (matchedPortId) return matchedPortId;
+  const prefix = `${nodeId}_`;
+  return inputPortId.startsWith(prefix) ? inputPortId.slice(prefix.length) : inputPortId;
+}
 
   function getInputRaw(
     portId: string,
@@ -166,7 +178,7 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
       }
     }
 
-    const CONSTRUCTOR_TYPES = new Set(['float', 'color', 'int']);
+    const CONSTRUCTOR_TYPES = new Set(['float', 'color', 'int', 'boolean']);
 
     for (const matNode of materialNodes) {
       const def = TSL_NODE_BY_TYPE.get(matNode.type);
@@ -179,14 +191,15 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
       // Pass 1: collect constructor params for unconnected float/color/int inputs
       for (let i = 0; i < matInputs.length; i++) {
         const inputPort = matInputs[i];
-        const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
-        const portType = def.inputs[i]?.type ?? inputPort.type;
+        const portDef = getMaterialInputDef(def.inputs, inputPort, i);
+        const catalogPortId = getMaterialCatalogPortId(matNode.id, inputPort.id, portDef?.id);
+        const portType = portDef?.type ?? inputPort.type;
         const conn = connections.find(c => c.to === inputPort.id);
         if (conn || !CONSTRUCTOR_TYPES.has(portType)) continue;
 
         const legacyName = catalogPortId.replace(/Node$/, '');
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const defaultVal = inputPort.value ?? def.inputs[i]?.defaultValue ?? null;
+        const defaultVal = inputPort.value ?? portDef?.defaultValue ?? null;
 
         if (portType === 'color') {
           const v = Array.isArray(defaultVal) ? defaultVal : [1, 1, 1];
@@ -194,6 +207,8 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             v[0] ?? 1, v[1] ?? 1, v[2] ?? 1,
           );
+        } else if (portType === 'boolean') {
+          constructorParams[legacyName] = defaultVal === true;
         } else {
           constructorParams[legacyName] = typeof defaultVal === 'number' ? defaultVal : 0;
         }
@@ -206,7 +221,8 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
       // Pass 2: set *Node props for connected inputs
       for (let i = 0; i < matInputs.length; i++) {
         const inputPort = matInputs[i];
-        const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
+        const portDef = getMaterialInputDef(def.inputs, inputPort, i);
+        const catalogPortId = getMaterialCatalogPortId(matNode.id, inputPort.id, portDef?.id);
         const conn = connections.find(c => c.to === inputPort.id);
         if (!conn) continue;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

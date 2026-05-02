@@ -77,6 +77,7 @@ describe('TSL_NODE_CATALOG', () => {
     expect(types.has('tsl:UniformFloat')).toBe(true);
     expect(types.has('tsl:UniformVec3')).toBe(true);
     expect(types.has('tsl:UniformColor')).toBe(true);
+    expect(types.has('tsl:BooleanNode')).toBe(true);
     expect(types.has('tsl:MaterialOutput')).toBe(true);
     expect(types.has('tsl:PhysicalMaterialOutput')).toBe(true);
   });
@@ -208,6 +209,7 @@ describe('plugin build + export for each handler type', () => {
     'tsl:PositionLocal', 'tsl:PositionWorld', 'tsl:PositionView',
     'tsl:NormalLocal', 'tsl:NormalWorld', 'tsl:NormalView',
     'tsl:UV', 'tsl:Time', 'tsl:CameraPosition', 'tsl:VertexColor',
+    'tsl:BooleanNode',
     'tsl:UniformFloat', 'tsl:UniformVec3', 'tsl:UniformColor',
     'tsl:SplitXYZ', 'tsl:CombineXYZ',
     'tsl:TextureSample',

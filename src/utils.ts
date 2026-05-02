@@ -77,6 +77,7 @@ const getInputHeight = (port: NodePort): number => {
     switch (port.type) {
         case 'float': return 28;
         case 'int': return 28;
+        case 'boolean': return 28;
         case 'color': return 24;
         case 'gradient': return 72;
         case 'float_curve': return 168;

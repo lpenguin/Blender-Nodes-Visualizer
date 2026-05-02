@@ -264,9 +264,34 @@ const ColorValueEditor: React.FC<{
     );
 };
 
+const BooleanValueEditor: React.FC<{
+    label?: string;
+    value: TSLValue;
+    onChange: (value: boolean) => void;
+}> = ({ label, value, onChange }) => {
+    const checked = value === true;
+
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={checked}
+            aria-label={label}
+            className="flex h-7 w-full items-center justify-between overflow-hidden rounded bg-neutral-600/95 px-2 text-[11px] text-neutral-100 shadow-sm transition-colors hover:bg-neutral-500/95 pointer-events-auto"
+            onPointerDown={(event) => { event.stopPropagation(); }}
+            onClick={() => { onChange(!checked); }}
+        >
+            <span className="min-w-0 flex-1 truncate text-left text-neutral-100">{label}</span>
+            <span className={`shrink-0 rounded px-1.5 py-0.5 font-mono ${checked ? 'bg-emerald-500/20 text-emerald-300' : 'bg-neutral-700 text-neutral-300'}`}>
+                {checked ? 'true' : 'false'}
+            </span>
+        </button>
+    );
+};
+
 const isExpandedInputWidget = (type: string): boolean => type === 'gradient' || type === 'float_curve';
 
-const isEmbeddedNumericInput = (type: string): boolean => type === 'float' || type === 'int';
+const isEmbeddedNumericInput = (type: string): boolean => type === 'float' || type === 'int' || type === 'boolean';
 
 const isInlineColorInput = (type: string): boolean => type === 'color';
 
@@ -454,6 +479,19 @@ const ValueWidget: React.FC<{ type: string; value: TSLValue; label?: string; onC
                 onPointerDown={e => { e.stopPropagation(); }}
             >
                 {formatNumericValue(num, true)}
+            </div>
+        );
+    }
+    if (type === 'boolean') {
+        if (onChange) {
+            return <BooleanValueEditor label={label} value={value} onChange={onChange} />;
+        }
+        return (
+            <div
+                className={`ml-auto rounded px-2 py-0.5 text-xs font-mono ${value === true ? 'bg-emerald-500/20 text-emerald-300' : 'bg-neutral-700 text-neutral-300'}`}
+                onPointerDown={e => { e.stopPropagation(); }}
+            >
+                {value === true ? 'true' : 'false'}
             </div>
         );
     }
@@ -677,7 +715,7 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, onInputValueChange
     } else if (['UV', 'Time', 'PositionLocal', 'PositionWorld', 'PositionView',
                  'NormalLocal', 'NormalWorld', 'NormalView', 'CameraPosition', 'VertexColor'].includes(tslType)) {
       headerClass = "bg-amber-900/70";
-    } else if (['FloatNode', 'Vec2Node', 'Vec3Node', 'Vec4Node', 'ColorNode',
+    } else if (['FloatNode', 'Vec2Node', 'Vec3Node', 'Vec4Node', 'ColorNode', 'BooleanNode',
                  'UniformFloat', 'UniformVec3', 'UniformColor'].includes(tslType)) {
       headerClass = "bg-sky-900/70";
     } else if (['TextureSample'].includes(tslType)) {

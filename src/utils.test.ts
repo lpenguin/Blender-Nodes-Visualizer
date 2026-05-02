@@ -20,6 +20,7 @@ describe('getPortColor', () => {
     expect(getPortColor('float')).toBe('#A1A1A1');
     expect(getPortColor('color')).toBe('#C7C729');
     expect(getPortColor('vec2')).toBe('#63C7C7');
+    expect(getPortColor('boolean')).toBe('#63C763');
   });
 
   it('defaults to float color for unknown type', () => {
@@ -191,6 +192,18 @@ describe('calculateNodeContentSize', () => {
       inputs: [{ id: 'i1', name: 'I', type: 'float', connected: false }],
     };
     expect(calculateNodeContentSize(withInputs).height).toBeGreaterThan(calculateNodeContentSize(noInputs).height);
+  });
+
+  it('boolean input uses compact inline widget height', () => {
+    const boolNode: NodeData = {
+      id: 'n1', name: 'N', type: 'test', position: { x: 0, y: 0 },
+      inputs: [{ id: 'i1', name: 'Enabled', type: 'boolean', connected: false }],
+    };
+    const floatNode: NodeData = {
+      id: 'n2', name: 'N', type: 'test', position: { x: 0, y: 0 },
+      inputs: [{ id: 'i1', name: 'Value', type: 'float', connected: false }],
+    };
+    expect(calculateNodeContentSize(boolNode).height).toBe(calculateNodeContentSize(floatNode).height);
   });
 
   it('gradient input adds more height than float input', () => {
