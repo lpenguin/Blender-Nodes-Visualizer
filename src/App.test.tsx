@@ -30,7 +30,7 @@ describe('App JSON import/export', () => {
   });
 
   it('imports a graph from a JSON file', async () => {
-    const { container, getByTitle } = render(<App />);
+    const { container, getByTitle, getByText } = render(<App />);
     const input = container.querySelector<HTMLInputElement>('input[type="file"]');
     expect(input).not.toBeNull();
     const file = new File([
@@ -49,7 +49,8 @@ describe('App JSON import/export', () => {
       }),
     ], 'imported-graph.json', { type: 'application/json' });
 
-    fireEvent.click(getByTitle('Import graph from JSON file'));
+    fireEvent.click(getByTitle('File menu'));
+    fireEvent.click(getByText('Import JSON'));
     fireEvent.change(input!, { target: { files: [file] } });
 
     await waitFor(() => {
@@ -82,9 +83,10 @@ describe('App JSON import/export', () => {
     const appendChildSpy = vi.spyOn(document.body, 'appendChild');
     const removeSpy = vi.spyOn(HTMLAnchorElement.prototype, 'remove').mockImplementation(() => undefined);
 
-    const { getByTitle } = render(<App />);
+    const { getByTitle, getByText } = render(<App />);
 
-    fireEvent.click(getByTitle('Export current graph as JSON'));
+    fireEvent.click(getByTitle('File menu'));
+    fireEvent.click(getByText('Export JSON'));
 
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     expect(clickSpy).toHaveBeenCalledTimes(1);

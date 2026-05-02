@@ -87,7 +87,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 <ChevronDown size={14} className="text-neutral-400" />
               </button>
               {showFileMenu && (
-                <div className="absolute left-0 top-[calc(100%+8px)] w-48 rounded-xl border border-neutral-700 bg-neutral-900 shadow-2xl overflow-hidden z-50" onPointerDown={(e) => { e.stopPropagation(); }}>
+                <div className="absolute left-0 top-[calc(100%+8px)] w-52 rounded-xl border border-neutral-700 bg-neutral-900 shadow-2xl overflow-hidden z-50" onPointerDown={(e) => { e.stopPropagation(); }}>
                   <button onClick={() => { setShowFileMenu(false); onSaveMaterial(); }} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-neutral-200 hover:bg-neutral-800 transition-colors">
                     <Save size={14} /> Save <span className="ml-auto text-[11px] text-neutral-500">Ctrl-S</span>
                   </button>
@@ -96,6 +96,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   </button>
                   <button onClick={() => { setShowFileMenu(false); onDuplicateMaterial(); }} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-neutral-200 hover:bg-neutral-800 transition-colors">
                     <Copy size={14} /> Duplicate
+                  </button>
+                  <div className="mx-2 border-t border-neutral-800" />
+                  <button onClick={() => { setShowFileMenu(false); onImportJson(); }} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-neutral-200 hover:bg-neutral-800 transition-colors">
+                    <Upload size={14} /> Import JSON
+                  </button>
+                  <button onClick={() => { if (!canExportJson) return; setShowFileMenu(false); onExportJson(); }} disabled={!canExportJson} className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm transition-colors ${canExportJson ? 'text-neutral-200 hover:bg-neutral-800' : 'text-neutral-500 cursor-not-allowed'}`}>
+                    <Download size={14} /> Export JSON
                   </button>
                 </div>
               )}
@@ -151,24 +158,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <Code2 size={16} />
           </button>
 
-          <button
-            onClick={onImportJson}
-            className={`${buttonBase} bg-neutral-800 text-neutral-200 hover:bg-neutral-700`}
-            aria-label="Import graph from JSON file"
-            title="Import graph from JSON file"
-          >
-            <Upload size={16} />
-          </button>
-
-          <button
-            onClick={onExportJson}
-            disabled={!canExportJson}
-            className={`${buttonBase} ${canExportJson ? 'bg-neutral-800 text-neutral-200 hover:bg-neutral-700' : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'}`}
-            aria-label="Export current graph as JSON"
-            title="Export current graph as JSON"
-          >
-            <Download size={16} />
-          </button>
         </div>
       </div>
     </>
