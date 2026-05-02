@@ -558,7 +558,7 @@ const InputRow: React.FC<{
     //    Hide Port: Show Label + Widget. No Dot.
     //    Show Port: Show Dot + Label + Widget.
 
-    const showDot = port.connected ?? !port.hide_port;
+    const showDot = port.connected === true || port.hide_port !== true;
     const showWidget = !port.connected; 
     
     const isLargeWidget = isExpandedInputWidget(port.type);

@@ -190,6 +190,41 @@ describe('NodeWidget', () => {
     });
   });
 
+  describe('input port dot visibility', () => {
+    it('shows dot for disconnected input without hide_port', () => {
+      const { container } = render(wrap(<NodeWidget data={makeNode()} />));
+      const inPort = container.querySelector('[data-port-id="in1"]');
+      expect(inPort!.className).not.toContain('invisible');
+    });
+
+    it('hides dot for disconnected input with hide_port true', () => {
+      const node = makeNode({
+        inputs: [{ id: 'in1', name: 'A', type: 'float', value: 0.5, connected: false, hide_port: true }],
+      });
+      const { container } = render(wrap(<NodeWidget data={node} />));
+      const inPort = container.querySelector('[data-port-id="in1"]');
+      expect(inPort!.className).toContain('invisible');
+    });
+
+    it('shows dot for connected input regardless of hide_port', () => {
+      const node = makeNode({
+        inputs: [{ id: 'in1', name: 'A', type: 'float', value: 0.5, connected: true, hide_port: true }],
+      });
+      const { container } = render(wrap(<NodeWidget data={node} />));
+      const inPort = container.querySelector('[data-port-id="in1"]');
+      expect(inPort!.className).not.toContain('invisible');
+    });
+
+    it('shows dot for input with undefined connected and no hide_port', () => {
+      const node = makeNode({
+        inputs: [{ id: 'in1', name: 'A', type: 'float', value: 0.5 }],
+      });
+      const { container } = render(wrap(<NodeWidget data={node} />));
+      const inPort = container.querySelector('[data-port-id="in1"]');
+      expect(inPort!.className).not.toContain('invisible');
+    });
+  });
+
   describe('output row', () => {
     it('shows output port name', () => {
       render(wrap(<NodeWidget data={makeNode()} />));
