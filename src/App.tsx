@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { GraphCanvas } from './components/NodeGraph/GraphCanvas';
 import { Toolbar } from './components/UI/Toolbar';
 import { ToastProvider } from './components/UI/Toast';
-import { NodePicker } from './components/UI/NodePicker';
+import { NodePicker, NodePickerConnectionContext, NodePickerSelection } from './components/UI/NodePicker';
 import { TSLCodePanel } from './components/UI/TSLCodePanel';
 import { ShaderPreview } from './components/UI/ShaderPreview';
 import { MaterialLoadDialog } from './components/UI/MaterialLoadDialog';
@@ -11,8 +11,17 @@ import { exportTSL } from './tslExport';
 import { DEFAULT_JSON_EXAMPLE } from './constants';
 import { GraphSchema, NodeData, ConnectionData, SavedMaterial } from './types';
 import { TSLNodeDef } from './tslNodes';
+import { TSLPortDef } from './tslHandlerContext';
+import { EmptyConnectionDropPayload } from './components/NodeGraph/GraphCanvas';
 
 const MATERIAL_STORAGE_KEY = 'quick-sailor.saved-materials';
+
+interface PendingPickerConnection {
+  worldPosition: { x: number; y: number };
+  anchorPortId: string;
+  anchorDirection: 'input' | 'output';
+  detachedConnection: ConnectionData | null;
+}
 
 const readSavedMaterials = (): SavedMaterial[] => {
   try {
@@ -73,6 +82,7 @@ function App(): React.ReactElement {
   const [showNodePicker, setShowNodePicker] = useState<boolean>(false);
   const [nodePickerPosition, setNodePickerPosition] = useState<{ x: number; y: number } | null>(null);
   const [nodePickerWorldPosition, setNodePickerWorldPosition] = useState<{ x: number; y: number } | null>(null);
+  const [pendingPickerConnection, setPendingPickerConnection] = useState<PendingPickerConnection | null>(null);
   const [showTSLCode, setShowTSLCode] = useState<boolean>(false);
   const [tslCode, setTslCode] = useState<string>('');
   const [showPreview, setShowPreview] = useState<boolean>(window.innerWidth > 768);
@@ -271,7 +281,7 @@ function App(): React.ReactElement {
   };
 
   // Add a node from the picker onto the canvas
-  const handleAddNode = useCallback((def: TSLNodeDef, position?: { x: number; y: number }) => {
+  const createNode = useCallback((def: TSLNodeDef, position?: { x: number; y: number }): { schema: GraphSchema; node: NodeData } => {
     const newSchema = schema ?? { nodes: [], connections: [] };
 
     // Place the new node near the center of the viewport with slight offset
@@ -310,12 +320,18 @@ function App(): React.ReactElement {
       ...newSchema,
       nodes: [...newSchema.nodes, newNode],
     });
+    return { schema: updated, node: newNode };
+  }, [schema]);
+
+  const handleAddNode = useCallback((def: TSLNodeDef, position?: { x: number; y: number }) => {
+    const { schema: updated } = createNode(def, position);
     commitSchema(updated);
-  }, [commitSchema, schema]);
+  }, [commitSchema, createNode]);
 
   const handleOpenNodePicker = useCallback((screenPos?: { x: number; y: number }) => {
     setNodePickerPosition(screenPos ?? null);
     setNodePickerWorldPosition(null);
+    setPendingPickerConnection(null);
     setShowNodePicker(true);
   }, []);
 
@@ -323,17 +339,75 @@ function App(): React.ReactElement {
     setShowNodePicker(false);
     setNodePickerPosition(null);
     setNodePickerWorldPosition(null);
+    setPendingPickerConnection(null);
   }, []);
 
   const handleCanvasContextMenu = useCallback((screenPos: { x: number; y: number }, worldPos: { x: number; y: number }) => {
     setNodePickerPosition(screenPos);
     setNodePickerWorldPosition(worldPos);
+    setPendingPickerConnection(null);
     setShowNodePicker(true);
   }, []);
 
-  const handleAddNodeFromPicker = useCallback((def: TSLNodeDef) => {
-    handleAddNode(def, nodePickerWorldPosition ?? undefined);
-  }, [handleAddNode, nodePickerWorldPosition]);
+  const handleConnectionDropToEmptySpace = useCallback((payload: EmptyConnectionDropPayload) => {
+    setNodePickerPosition(payload.screenPosition);
+    setNodePickerWorldPosition(payload.worldPosition);
+    setPendingPickerConnection({
+      worldPosition: payload.worldPosition,
+      anchorPortId: payload.anchorPortId,
+      anchorDirection: payload.anchorDirection,
+      detachedConnection: payload.detachedConnection,
+    });
+    setShowNodePicker(true);
+  }, []);
+
+  const handleAddNodeFromPicker = useCallback((selection: NodePickerSelection) => {
+    const position = nodePickerWorldPosition ?? undefined;
+
+    if (!pendingPickerConnection || !selection.selectedPort || !selection.selectedPortDirection) {
+      handleAddNode(selection.def, position);
+      return;
+    }
+
+    const { schema: nextSchema, node } = createNode(selection.def, position);
+    const resolveSelectedPortId = (ports: TSLPortDef[] | undefined, nodePorts: NodeData['inputs'] | undefined): string | undefined => {
+      if (!ports || !nodePorts) return undefined;
+      const selectedPortIndex = ports.findIndex((port) => port.id === selection.selectedPort?.id);
+      if (selectedPortIndex < 0) return undefined;
+      return nodePorts[selectedPortIndex]?.id;
+    };
+
+    const selectedPortId = selection.selectedPortDirection === 'input'
+      ? resolveSelectedPortId(selection.def.inputs, node.inputs)
+      : resolveSelectedPortId(selection.def.outputs, node.outputs);
+
+    if (!selectedPortId) {
+      commitSchema(nextSchema);
+      return;
+    }
+
+    const nextConnection = pendingPickerConnection.anchorDirection === 'output'
+      ? { from: pendingPickerConnection.anchorPortId, to: selectedPortId }
+      : { from: selectedPortId, to: pendingPickerConnection.anchorPortId };
+
+    const updatedConnections = nextSchema.connections.filter((connection) => {
+      if (connection.to === nextConnection.to) return false;
+      if (pendingPickerConnection.detachedConnection) {
+        return connection.from !== pendingPickerConnection.detachedConnection.from
+          || connection.to !== pendingPickerConnection.detachedConnection.to;
+      }
+      return true;
+    });
+
+    commitSchema(applyConnectionState({
+      ...nextSchema,
+      connections: [...updatedConnections, nextConnection],
+    }));
+  }, [commitSchema, createNode, handleAddNode, nodePickerWorldPosition, pendingPickerConnection]);
+
+  const nodePickerConnectionContext: NodePickerConnectionContext | null = pendingPickerConnection
+    ? { anchorDirection: pendingPickerConnection.anchorDirection }
+    : null;
 
   // Generate TSL code and open the panel
   const handleToggleTSLCode = (): void => {
@@ -482,6 +556,7 @@ function App(): React.ReactElement {
                     onInteractionEnd={handleInteractionEnd}
                     onDeleteNodes={handleDeleteNodes}
                     onContextMenu={handleCanvasContextMenu}
+                    onConnectionDropToEmptySpace={handleConnectionDropToEmptySpace}
                   />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-neutral-600 flex-col gap-4">
@@ -496,6 +571,7 @@ function App(): React.ReactElement {
               onClose={handleCloseNodePicker}
               onAddNode={handleAddNodeFromPicker}
               initialScreenPosition={nodePickerPosition}
+              connectionContext={nodePickerConnectionContext}
             />
 
             {/* TSL Code Panel Overlay */}

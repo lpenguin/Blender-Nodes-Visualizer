@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'bun:test';
 import { render, fireEvent, screen } from '@testing-library/react';
-import { NodePicker } from './NodePicker';
+import { NodePicker, NodePickerSelection } from './NodePicker';
 
 describe('NodePicker', () => {
   beforeEach(() => {
@@ -51,7 +51,7 @@ describe('NodePicker', () => {
 
   it('adds a node and closes when an item is clicked', () => {
     const onClose = vi.fn();
-    const onAddNode = vi.fn();
+    const onAddNode = vi.fn<(selection: NodePickerSelection) => void>();
 
     render(
       <NodePicker
@@ -65,6 +65,47 @@ describe('NodePicker', () => {
     fireEvent.click(screen.getAllByText('UV')[0]);
 
     expect(onAddNode).toHaveBeenCalledTimes(1);
+    const selection = onAddNode.mock.calls[0][0];
+    expect(selection.def.name).toBe('UV');
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows nodeName.portName rows in connection mode', () => {
+    const onClose = vi.fn();
+    const onAddNode = vi.fn<(selection: NodePickerSelection) => void>();
+
+    render(
+      <NodePicker
+        isOpen
+        onClose={onClose}
+        onAddNode={onAddNode}
+        initialScreenPosition={{ x: 240, y: 180 }}
+        connectionContext={{ anchorDirection: 'output' }}
+      />
+    );
+
+    expect(screen.getByText('Sin.A')).toBeTruthy();
+  });
+
+  it('returns the selected port in connection mode', () => {
+    const onClose = vi.fn();
+    const onAddNode = vi.fn<(selection: NodePickerSelection) => void>();
+
+    render(
+      <NodePicker
+        isOpen
+        onClose={onClose}
+        onAddNode={onAddNode}
+        initialScreenPosition={{ x: 240, y: 180 }}
+        connectionContext={{ anchorDirection: 'output' }}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Sin.A'));
+
+    const selection = onAddNode.mock.calls[0][0];
+    expect(selection.def.name).toBe('Sin');
+    expect(selection.selectedPort?.name).toBe('A');
+    expect(selection.selectedPortDirection).toBe('input');
   });
 });

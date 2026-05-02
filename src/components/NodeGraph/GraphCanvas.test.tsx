@@ -167,6 +167,53 @@ describe('GraphCanvas', () => {
       const callArgs = onConnectionsChange.mock.calls[0]?.[0] as { from: string; to: string }[];
       expect(callArgs).not.toContainEqual({ from: 'a_out', to: 'b_in' });
     });
+
+    it('opens picker flow when an output is dropped on empty space', () => {
+      const onConnectionDropToEmptySpace = vi.fn();
+      const schema = makeSchema({ connections: [] });
+      const { container } = render(
+        wrap(<GraphCanvas schema={schema} onConnectionDropToEmptySpace={onConnectionDropToEmptySpace} />)
+      );
+
+      const portEl = container.querySelector('[data-port-id="a_out"]')!;
+      const canvas = container.firstChild as HTMLElement;
+      fireEvent.pointerDown(portEl, { clientX: 300, clientY: 140, pointerId: 1, button: 0, pointerType: 'mouse' });
+      fireEvent.pointerMove(canvas, { clientX: 40, clientY: 50, pointerId: 1, pointerType: 'mouse' });
+      fireEvent.pointerUp(canvas, { clientX: 40, clientY: 50, pointerId: 1, button: 0, pointerType: 'mouse' });
+
+      expect(onConnectionDropToEmptySpace).toHaveBeenCalledTimes(1);
+      expect(onConnectionDropToEmptySpace).toHaveBeenCalledWith({
+        screenPosition: { x: 40, y: 50 },
+        worldPosition: { x: 40, y: 50 },
+        anchorPortId: 'a_out',
+        anchorDirection: 'output',
+        anchorType: 'float',
+        detachedConnection: null,
+      });
+    });
+
+    it('does not open picker flow when a connected input is dropped on empty space', () => {
+      const onConnectionDropToEmptySpace = vi.fn();
+      const onConnectionsChange = vi.fn();
+      const { container } = render(
+        wrap(
+          <GraphCanvas
+            schema={makeSchema()}
+            onConnectionDropToEmptySpace={onConnectionDropToEmptySpace}
+            onConnectionsChange={onConnectionsChange}
+          />
+        )
+      );
+
+      const portEl = container.querySelector('[data-port-id="b_in"]')!;
+      const canvas = container.firstChild as HTMLElement;
+      fireEvent.pointerDown(portEl, { clientX: 400, clientY: 140, pointerId: 1, button: 0, pointerType: 'mouse' });
+      fireEvent.pointerMove(canvas, { clientX: 40, clientY: 50, pointerId: 1, pointerType: 'mouse' });
+      fireEvent.pointerUp(canvas, { clientX: 40, clientY: 50, pointerId: 1, button: 0, pointerType: 'mouse' });
+
+      expect(onConnectionDropToEmptySpace).not.toHaveBeenCalled();
+      expect(onConnectionsChange).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('panning', () => {

@@ -6,6 +6,15 @@ import { calculateNodeContentSize } from '../../utils';
 import { usePortPositions } from '../../hooks/usePortPositions';
 import { TSLValue } from '../../handlers';
 
+export interface EmptyConnectionDropPayload {
+  screenPosition: { x: number; y: number };
+  worldPosition: { x: number; y: number };
+  anchorPortId: string;
+  anchorDirection: PortDirection;
+  anchorType: DataType;
+  detachedConnection: ConnectionData | null;
+}
+
 interface GraphCanvasProps {
   schema: GraphSchema;
   onNodesChange?: (nodes: NodeData[]) => void;
@@ -13,6 +22,7 @@ interface GraphCanvasProps {
   onInteractionEnd?: (schema?: GraphSchema) => void;
   onDeleteNodes?: (nodeIds: string[]) => void;
   onContextMenu?: (screenPos: { x: number; y: number }, worldPos: { x: number; y: number }) => void;
+  onConnectionDropToEmptySpace?: (payload: EmptyConnectionDropPayload) => void;
 }
 
 type InteractionMode = 'IDLE' | 'PANNING' | 'DRAGGING_NODES' | 'BOX_SELECTING' | 'RESIZING_NODE' | 'PINCH_ZOOM' | 'DRAGGING_CONNECTION';
@@ -65,6 +75,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   onInteractionEnd,
   onDeleteNodes,
   onContextMenu,
+  onConnectionDropToEmptySpace,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState<ViewportState>({ x: 0, y: 0, scale: 1 });
@@ -621,6 +632,15 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
             const updatedSchema = { ...schemaRef.current, connections: updatedConnections };
             onConnectionsChange(updatedConnections);
             if (onInteractionEnd) onInteractionEnd(updatedSchema);
+        } else if (!connectionDrag.detachedConnection && onConnectionDropToEmptySpace) {
+            onConnectionDropToEmptySpace({
+                screenPosition: { x: e.clientX, y: e.clientY },
+                worldPosition: screenToWorld(e.clientX, e.clientY),
+                anchorPortId: connectionDrag.anchorPortId,
+                anchorDirection: connectionDrag.anchorDirection,
+                anchorType: connectionDrag.anchorType,
+                detachedConnection: connectionDrag.detachedConnection,
+            });
         } else if (connectionDrag.detachedConnection && onConnectionsChange) {
             const detached = connectionDrag.detachedConnection;
             const updatedConnections = schemaRef.current.connections.filter(

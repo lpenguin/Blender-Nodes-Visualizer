@@ -1,12 +1,32 @@
 import React, { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { X, Search, ChevronRight } from 'lucide-react';
 import { TSL_NODE_CATALOG, TSL_CATEGORIES, TSLNodeDef } from '../../tslNodes';
+import { TSLPortDef } from '../../tslHandlerContext';
+
+export interface NodePickerConnectionContext {
+  anchorDirection: 'input' | 'output';
+}
+
+export interface NodePickerSelection {
+  def: TSLNodeDef;
+  selectedPort?: TSLPortDef;
+  selectedPortDirection?: 'input' | 'output';
+}
+
+interface ConnectionEntry {
+  key: string;
+  def: TSLNodeDef;
+  port: TSLPortDef;
+  selectedPortDirection: 'input' | 'output';
+  label: string;
+}
 
 interface NodePickerProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddNode: (def: TSLNodeDef) => void;
+  onAddNode: (selection: NodePickerSelection) => void;
   initialScreenPosition?: { x: number; y: number } | null;
+  connectionContext?: NodePickerConnectionContext | null;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -30,7 +50,13 @@ const clampPickerPosition = (position: { x: number; y: number }): { x: number; y
   y: Math.max(VIEWPORT_MARGIN, Math.min(position.y, window.innerHeight - PICKER_MAX_HEIGHT - VIEWPORT_MARGIN)),
 });
 
-export const NodePicker: React.FC<NodePickerProps> = ({ isOpen, onClose, onAddNode, initialScreenPosition }) => {
+export const NodePicker: React.FC<NodePickerProps> = ({
+  isOpen,
+  onClose,
+  onAddNode,
+  initialScreenPosition,
+  connectionContext,
+}) => {
   const [search, setSearch] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(['Inputs', 'Math', 'Built-in', 'Output'])
@@ -51,6 +77,23 @@ export const NodePicker: React.FC<NodePickerProps> = ({ isOpen, onClose, onAddNo
         n.tslFn.toLowerCase().includes(q)
     );
   }, [search]);
+
+  const connectionEntries = useMemo(() => {
+    if (!connectionContext) return [];
+
+    const selectedPortDirection = connectionContext.anchorDirection === 'output' ? 'input' : 'output';
+
+    return filteredNodes.flatMap<ConnectionEntry>((def) => {
+      const ports = selectedPortDirection === 'input' ? def.inputs : def.outputs;
+      return ports.map((port) => ({
+        key: `${def.type}:${selectedPortDirection}:${port.id}`,
+        def,
+        port,
+        selectedPortDirection,
+        label: `${def.name}.${port.name}`,
+      }));
+    });
+  }, [connectionContext, filteredNodes]);
 
   const nodesByCategory = useMemo(() => {
     const map = new Map<string, TSLNodeDef[]>();
@@ -178,7 +221,33 @@ export const NodePicker: React.FC<NodePickerProps> = ({ isOpen, onClose, onAddNo
         </div>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          {Array.from(nodesByCategory.entries()).map(([cat, nodes]) => {
+          {connectionContext ? connectionEntries.map((entry) => (
+            <button
+              key={entry.key}
+              className="w-full flex flex-col gap-0.5 px-4 py-2 text-left hover:bg-neutral-800 transition-colors group border-b border-neutral-800/30"
+              onClick={() => {
+                onAddNode({
+                  def: entry.def,
+                  selectedPort: entry.port,
+                  selectedPortDirection: entry.selectedPortDirection,
+                });
+                onClose();
+              }}
+              title={entry.def.description}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-neutral-200 font-medium group-hover:text-white transition-colors">
+                  {entry.label}
+                </span>
+                <span className="text-[10px] font-mono text-neutral-600 group-hover:text-neutral-400 transition-colors shrink-0">
+                  {entry.def.tslFn}()
+                </span>
+              </div>
+              <p className="text-[10px] text-neutral-500 group-hover:text-neutral-400 transition-colors leading-tight line-clamp-1">
+                {entry.def.description}
+              </p>
+            </button>
+          )) : Array.from(nodesByCategory.entries()).map(([cat, nodes]) => {
             if (nodes.length === 0) return null;
             const isExpanded = expandedCategories.has(cat) || search.trim().length > 0;
 
@@ -207,7 +276,7 @@ export const NodePicker: React.FC<NodePickerProps> = ({ isOpen, onClose, onAddNo
                         key={node.type}
                         className="w-full flex flex-col gap-0.5 px-4 py-2 text-left hover:bg-neutral-800 transition-colors group border-b border-neutral-800/30"
                         onClick={() => {
-                          onAddNode(node);
+                          onAddNode({ def: node });
                           onClose();
                         }}
                         title={node.description}
@@ -231,7 +300,7 @@ export const NodePicker: React.FC<NodePickerProps> = ({ isOpen, onClose, onAddNo
             );
           })}
 
-          {filteredNodes.length === 0 && (
+          {((connectionContext ? connectionEntries.length : filteredNodes.length) === 0) && (
             <div className="p-6 text-center text-neutral-500 text-sm">
               No nodes match "{search}"
             </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'bun:test';
-import { render, fireEvent, waitFor } from '@testing-library/react';
+import { render, fireEvent, waitFor, screen } from '@testing-library/react';
 import App from './App';
 
 describe('App JSON import/export', () => {
@@ -155,5 +155,32 @@ describe('App JSON import/export', () => {
     fireEvent.click(getByTitle('Edit menu'));
     fireEvent.click(getByText('Undo'));
     expect(container.querySelectorAll('[data-node-id]').length).toBe(initialCount);
+  });
+
+  it('creates and connects a node under the mouse from the empty-drop picker flow', async () => {
+    const { container } = render(<App />);
+
+    const outputPort = container.querySelector('[data-port-id="uv_out"]');
+    expect(outputPort).not.toBeNull();
+
+    const canvas = container.querySelector('.touch-none')!;
+    fireEvent.pointerDown(outputPort!, { clientX: 0, clientY: 0, pointerId: 1, button: 0, pointerType: 'mouse' });
+    fireEvent.pointerMove(canvas, { clientX: 520, clientY: 260, pointerId: 1, pointerType: 'mouse' });
+    fireEvent.pointerUp(canvas, { clientX: 520, clientY: 260, pointerId: 1, button: 0, pointerType: 'mouse' });
+
+    const pickerRow = await screen.findByText('Sin.A');
+    fireEvent.click(pickerRow);
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-node-id="sin"]')).not.toBeNull();
+    });
+
+    const createdNode = container.querySelector('[data-node-id="sin"]');
+    expect(createdNode).not.toBeNull();
+    expect(createdNode?.getAttribute('style') ?? '').toContain('left: 520px');
+    expect(createdNode?.getAttribute('style') ?? '').toContain('top: 260px');
+
+    const connectionPaths = container.querySelectorAll('svg path');
+    expect(connectionPaths.length).toBeGreaterThan(0);
   });
 });
