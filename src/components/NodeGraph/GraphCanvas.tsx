@@ -76,18 +76,18 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
   const viewportRef = useRef<ViewportState>(viewport);
   const schemaRef = useRef<GraphSchema>(schema);
 
-  const { positions: portPositions, positionsRef: portPositionsRef } = usePortPositions(containerRef, viewportRef);
-  
-  useEffect(() => { viewportRef.current = viewport; }, [viewport]);
+  const { positions: portPositions, positionsRef: portPositionsRef } = usePortPositions(containerRef, viewportRef, viewport);
+
   useEffect(() => { schemaRef.current = schema; }, [schema]);
 
   // --- Helpers ---
 
   const screenToWorld = (sx: number, sy: number): { x: number; y: number } => {
     const v = viewportRef.current;
+    const rect = containerRef.current?.getBoundingClientRect();
     return {
-      x: (sx - v.x) / v.scale,
-      y: (sy - v.y) / v.scale
+      x: (sx - (rect?.left ?? 0) - v.x) / v.scale,
+      y: (sy - (rect?.top ?? 0) - v.y) / v.scale
     };
   };
 
