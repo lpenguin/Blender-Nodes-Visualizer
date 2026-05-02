@@ -224,6 +224,40 @@ describe('exportTSL', () => {
       expect(result).toContain('const dot1 = dot(vec3(1.0000, 2.0000, 3.0000), vec3(4.0000, 5.0000, 6.0000));');
     });
 
+    it('generates dFdx and dFdy nodes with connected vec3 inputs', () => {
+      const schema: GraphSchema = {
+        nodes: [
+          makeNode({
+            id: 'pos1',
+            type: 'tsl:PositionView',
+            outputs: [{ id: 'pos1_out', name: 'Position', type: 'vec3' }],
+          }),
+          makeNode({
+            id: 'dfdx1',
+            type: 'tsl:DFdx',
+            inputs: [{ id: 'dfdx1_v', name: 'Value', type: 'vec3' }],
+            outputs: [{ id: 'dfdx1_out', name: 'Vec3', type: 'vec3' }],
+          }),
+          makeNode({
+            id: 'dfdy1',
+            type: 'tsl:DFdy',
+            inputs: [{ id: 'dfdy1_v', name: 'Value', type: 'vec3' }],
+            outputs: [{ id: 'dfdy1_out', name: 'Vec3', type: 'vec3' }],
+          }),
+        ],
+        connections: [
+          { from: 'pos1_out', to: 'dfdx1_v' },
+          { from: 'pos1_out', to: 'dfdy1_v' },
+        ],
+      };
+      const result = exportTSL(schema);
+      expect(result).toContain('dFdx');
+      expect(result).toContain('dFdy');
+      expect(result).toContain('positionView');
+      expect(result).toContain('const dfdx1 = dFdx(pos1);');
+      expect(result).toContain('const dfdy1 = dFdy(pos1);');
+    });
+
     it('uses port definition default values when port value is undefined', () => {
       const schema: GraphSchema = {
         nodes: [makeNode({

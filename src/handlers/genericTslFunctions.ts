@@ -489,6 +489,32 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     ],
   },
   {
+    type: 'tsl:DFdx',
+    name: 'dFdx',
+    category: 'Vector',
+    description: 'Fragment-space partial derivative in X.',
+    tslFn: 'dFdx',
+    inputs: [
+      { id: 'v', name: 'Value', type: 'vec3' },
+    ],
+    outputs: [
+      { id: 'out', name: 'Vec3', type: 'vec3' },
+    ],
+  },
+  {
+    type: 'tsl:DFdy',
+    name: 'dFdy',
+    category: 'Vector',
+    description: 'Fragment-space partial derivative in Y.',
+    tslFn: 'dFdy',
+    inputs: [
+      { id: 'v', name: 'Value', type: 'vec3' },
+    ],
+    outputs: [
+      { id: 'out', name: 'Vec3', type: 'vec3' },
+    ],
+  },
+  {
     type: 'tsl:MixColor',
     name: 'Mix Color',
     category: 'Color',

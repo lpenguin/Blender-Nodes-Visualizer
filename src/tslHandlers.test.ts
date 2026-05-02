@@ -73,6 +73,8 @@ describe('TSL_NODE_CATALOG', () => {
     expect(types.has('tsl:Mul')).toBe(true);
     expect(types.has('tsl:SplitXYZ')).toBe(true);
     expect(types.has('tsl:CombineXYZ')).toBe(true);
+    expect(types.has('tsl:DFdx')).toBe(true);
+    expect(types.has('tsl:DFdy')).toBe(true);
     expect(types.has('tsl:TextureSample')).toBe(true);
     expect(types.has('tsl:BumpMap')).toBe(true);
     expect(types.has('tsl:UniformFloat')).toBe(true);

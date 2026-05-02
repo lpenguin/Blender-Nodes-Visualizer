@@ -64,7 +64,7 @@ const GENERIC_TSL_FNS = new Set([
   'add', 'sub', 'mul', 'div', 'abs', 'sin', 'cos', 'pow', 'sqrt',
   'clamp', 'mix', 'step', 'smoothstep', 'min', 'max',
   'fract', 'floor', 'ceil', 'round', 'mod', 'sign', 'log', 'exp',
-  'dot', 'cross', 'normalize', 'length', 'distance', 'reflect', 'refract',
+  'dot', 'cross', 'normalize', 'length', 'distance', 'reflect', 'refract', 'dFdx', 'dFdy',
   'oneMinus', 'negate', 'reciprocal',
   'hue', 'saturation', 'luminance', 'bumpMap',
   'mx_cell_noise_float',
