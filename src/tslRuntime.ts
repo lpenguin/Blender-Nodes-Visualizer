@@ -1,3 +1,4 @@
+import { Color } from 'three';
 import {
   sin, cos, color, mix, add, sub, mul, div, abs, pow, sqrt, clamp,
   step, smoothstep, min, max, fract, floor, ceil, round, mod, sign, log, exp,
@@ -57,6 +58,7 @@ function formatDefault(type: string, value: TSLValue): TSLNode {
       const v = Array.isArray(value) ? value : [0, 0, 0, 1];
       return vec4(v[0] ?? 0, v[1] ?? 0, v[2] ?? 0, v[3] ?? 1);
     }
+    case 'int': return float(typeof value === 'number' ? value : 0);
     case 'color': {
       const v = Array.isArray(value) ? value : [1, 1, 1];
       return color(v[0] ?? 1, v[1] ?? 1, v[2] ?? 1);
@@ -164,25 +166,54 @@ export function buildTSLMaterial(schema: GraphSchema): MeshStandardNodeMaterial 
       }
     }
 
+    const CONSTRUCTOR_TYPES = new Set(['float', 'color', 'int']);
+
     for (const matNode of materialNodes) {
       const def = TSL_NODE_BY_TYPE.get(matNode.type);
       if (!def) continue;
-      const material = def.tslFn === 'MeshPhysicalNodeMaterial'
-        ? new MeshPhysicalNodeMaterial()
-        : new MeshStandardNodeMaterial();
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const constructorParams: Record<string, any> = {};
       const matInputs = matNode.inputs ?? [];
+
+      // Pass 1: collect constructor params for unconnected float/color/int inputs
+      for (let i = 0; i < matInputs.length; i++) {
+        const inputPort = matInputs[i];
+        const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
+        const portType = def.inputs[i]?.type ?? inputPort.type;
+        const conn = connections.find(c => c.to === inputPort.id);
+        if (conn || !CONSTRUCTOR_TYPES.has(portType)) continue;
+
+        const legacyName = catalogPortId.replace(/Node$/, '');
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const defaultVal = inputPort.value ?? def.inputs[i]?.defaultValue ?? null;
+
+        if (portType === 'color') {
+          const v = Array.isArray(defaultVal) ? defaultVal : [1, 1, 1];
+          constructorParams[legacyName] = new Color(
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            v[0] ?? 1, v[1] ?? 1, v[2] ?? 1,
+          );
+        } else {
+          constructorParams[legacyName] = typeof defaultVal === 'number' ? defaultVal : 0;
+        }
+      }
+
+      const material = def.tslFn === 'MeshPhysicalNodeMaterial'
+        ? new MeshPhysicalNodeMaterial(constructorParams)
+        : new MeshStandardNodeMaterial(constructorParams);
+
+      // Pass 2: set *Node props for connected inputs
       for (let i = 0; i < matInputs.length; i++) {
         const inputPort = matInputs[i];
         const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
         const conn = connections.find(c => c.to === inputPort.id);
-        if (conn) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const sourceValue = outputVarMap.get(conn.from);
-          if (sourceValue !== undefined) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-            (material as any)[catalogPortId] = sourceValue;
-          }
+        if (!conn) continue;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const sourceValue = outputVarMap.get(conn.from);
+        if (sourceValue !== undefined) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          (material as any)[catalogPortId] = sourceValue;
         }
       }
 

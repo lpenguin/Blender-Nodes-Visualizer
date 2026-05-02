@@ -94,10 +94,11 @@ export const DEFAULT_JSON_EXAMPLE = `{
       "type": "tsl:MaterialOutput",
       "position": { "x": 640, "y": 200 },
       "inputs": [
-        { "id": "colorNode", "name": "Color", "type": "color", "connected": true },
+        { "id": "colorNode", "name": "Color", "type": "color", "value": [1, 1, 1], "connected": true },
         { "id": "roughnessNode", "name": "Roughness", "type": "float", "value": 0.5, "connected": false },
         { "id": "metalnessNode", "name": "Metalness", "type": "float", "value": 0.0, "connected": false },
-        { "id": "emissiveNode", "name": "Emissive", "type": "color", "connected": false },
+        { "id": "emissiveNode", "name": "Emissive", "type": "color", "value": [1, 1, 1], "connected": false },
+        { "id": "emissiveIntensityNode", "name": "Emissive Strength", "type": "float", "value": 0.0, "connected": false },
         { "id": "normalNode", "name": "Normal", "type": "vec3", "connected": false },
         { "id": "opacityNode", "name": "Opacity", "type": "float", "value": 1.0, "connected": false },
         { "id": "positionNode", "name": "Position", "type": "vec3", "connected": false }

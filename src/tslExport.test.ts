@@ -496,7 +496,8 @@ describe('exportTSL', () => {
               { id: 'mat1_colorNode', name: 'Color', type: 'color' },
               { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
               { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
-              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color' },
+              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
               { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
               { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
               { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
@@ -688,7 +689,8 @@ describe('exportTSL', () => {
               { id: 'mat1_colorNode', name: 'Color', type: 'color' },
               { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
               { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
-              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color' },
+              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
               { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
               { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
               { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
@@ -702,7 +704,12 @@ describe('exportTSL', () => {
         ],
       };
       const result = exportTSL(schema);
-      expect(result).toContain('const mat1 = new MeshStandardNodeMaterial();');
+      expect(result).toContain('const mat1 = new MeshStandardNodeMaterial({');
+      expect(result).toContain('roughness:');
+      expect(result).toContain('metalness:');
+      expect(result).toContain('emissive: new THREE.Color');
+      expect(result).toContain('opacity:');
+      expect(result).not.toContain('color: new THREE.Color');
       expect(result).toContain('mat1.colorNode = tex1.rgb;');
     });
 
@@ -727,7 +734,8 @@ describe('exportTSL', () => {
               { id: 'pmat1_colorNode', name: 'Color', type: 'color' },
               { id: 'pmat1_roughnessNode', name: 'Roughness', type: 'float' },
               { id: 'pmat1_metalnessNode', name: 'Metalness', type: 'float' },
-              { id: 'pmat1_emissiveNode', name: 'Emissive', type: 'color' },
+              { id: 'pmat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'pmat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
               { id: 'pmat1_normalNode', name: 'Normal', type: 'vec3' },
               { id: 'pmat1_opacityNode', name: 'Opacity', type: 'float' },
               { id: 'pmat1_clearcoatNode', name: 'Clearcoat', type: 'float' },
@@ -742,7 +750,9 @@ describe('exportTSL', () => {
         ],
       };
       const result = exportTSL(schema);
-      expect(result).toContain('const pmat1 = new MeshPhysicalNodeMaterial();');
+      expect(result).toContain('const pmat1 = new MeshPhysicalNodeMaterial({');
+      expect(result).toContain('clearcoat:');
+      expect(result).toContain('transmission:');
     });
 
     it('only assigns connected material inputs', () => {
@@ -756,7 +766,8 @@ describe('exportTSL', () => {
               { id: 'mat1_colorNode', name: 'Color', type: 'color' },
               { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
               { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
-              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color' },
+              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
               { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
               { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
               { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
@@ -784,7 +795,8 @@ describe('exportTSL', () => {
               { id: 'mat1_colorNode', name: 'Color', type: 'color' },
               { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
               { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
-              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color' },
+              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
               { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
               { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
               { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
@@ -820,7 +832,8 @@ describe('exportTSL', () => {
               { id: 'mat1_colorNode', name: 'Color', type: 'color' },
               { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
               { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
-              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color' },
+              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
               { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
               { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
               { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
@@ -837,6 +850,193 @@ describe('exportTSL', () => {
       const result = exportTSL(schema);
       expect(result).toContain('mat1.roughnessNode = sin1;');
       expect(result).toContain('mat1.metalnessNode = time1;');
+    });
+  });
+
+  describe('material constructor params for unconnected inputs', () => {
+    it('passes float defaults as constructor params', () => {
+      const schema: GraphSchema = {
+        nodes: [makeNode({
+          id: 'mat1',
+          type: 'tsl:MaterialOutput',
+          inputs: [
+            { id: 'mat1_colorNode', name: 'Color', type: 'color' },
+            { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float', value: 0.8 },
+            { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float', value: 0.5 },
+            { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
+            { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
+            { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
+            { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
+          ],
+          outputs: [],
+        })],
+        connections: [],
+      };
+      const result = exportTSL(schema);
+      expect(result).toContain('roughness: 0.8000');
+      expect(result).toContain('metalness: 0.5000');
+    });
+
+    it('passes color defaults as THREE.Color constructor params', () => {
+      const schema: GraphSchema = {
+        nodes: [makeNode({
+          id: 'mat1',
+          type: 'tsl:MaterialOutput',
+          inputs: [
+            { id: 'mat1_colorNode', name: 'Color', type: 'color', value: [0.5, 0.3, 0.8] },
+            { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
+            { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
+            { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 0, 0] },
+            { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 1 },
+            { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
+            { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
+            { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
+          ],
+          outputs: [],
+        })],
+        connections: [],
+      };
+      const result = exportTSL(schema);
+      expect(result).toContain('color: new THREE.Color(0.5000, 0.3000, 0.8000)');
+      expect(result).toContain('emissive: new THREE.Color(1.0000, 0.0000, 0.0000)');
+      expect(result).toContain('emissiveIntensity: 1.0000');
+    });
+
+    it('passes int defaults as constructor params', () => {
+      const schema: GraphSchema = {
+        nodes: [makeNode({
+          id: 'mat1',
+          type: 'tsl:MaterialOutput',
+          inputs: [
+            { id: 'mat1_colorNode', name: 'Color', type: 'color' },
+            { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
+            { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
+            { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
+            { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
+            { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
+            { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
+            { id: 'mat1_iriostenessNode', name: 'Iridescence', type: 'int', value: 3 },
+          ],
+          outputs: [],
+        })],
+        connections: [],
+      };
+      const result = exportTSL(schema);
+      expect(result).toContain('iriosteness: 3');
+    });
+
+    it('skips vec3 inputs from constructor params', () => {
+      const schema: GraphSchema = {
+        nodes: [makeNode({
+          id: 'mat1',
+          type: 'tsl:MaterialOutput',
+          inputs: [
+            { id: 'mat1_colorNode', name: 'Color', type: 'color' },
+            { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
+            { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
+            { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
+            { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
+            { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
+            { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
+          ],
+          outputs: [],
+        })],
+        connections: [],
+      };
+      const result = exportTSL(schema);
+      expect(result).not.toContain('normal:');
+      expect(result).not.toContain('position:');
+    });
+
+    it('defaults emissive color to white and intensity to 0 when no value set', () => {
+      const schema: GraphSchema = {
+        nodes: [makeNode({
+          id: 'mat1',
+          type: 'tsl:MaterialOutput',
+          inputs: [
+            { id: 'mat1_colorNode', name: 'Color', type: 'color' },
+            { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
+            { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
+            { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color' },
+            { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float' },
+            { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
+            { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
+            { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
+          ],
+          outputs: [],
+        })],
+        connections: [],
+      };
+      const result = exportTSL(schema);
+      expect(result).toContain('emissive: new THREE.Color(1.0000, 1.0000, 1.0000)');
+      expect(result).toContain('emissiveIntensity: 0.0000');
+    });
+
+    it('uses constructor for unconnected inputs and *Node for connected', () => {
+      const schema: GraphSchema = {
+        nodes: [
+          makeNode({ id: 'time1', type: 'tsl:Time', outputs: [{ id: 'time1_out', name: 'Time', type: 'float' }] }),
+          makeNode({
+            id: 'mat1',
+            type: 'tsl:MaterialOutput',
+            inputs: [
+              { id: 'mat1_colorNode', name: 'Color', type: 'color', value: [1, 0, 0] },
+              { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
+              { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float', value: 0.5 },
+              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
+              { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
+              { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
+              { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
+            ],
+            outputs: [],
+          }),
+        ],
+        connections: [
+          { from: 'time1_out', to: 'mat1_roughnessNode' },
+        ],
+      };
+      const result = exportTSL(schema);
+      expect(result).toContain('color: new THREE.Color(1.0000, 0.0000, 0.0000)');
+      expect(result).toContain('metalness: 0.5000');
+      expect(result).toContain('mat1.roughnessNode = time1;');
+      expect(result).not.toContain('roughness: 0');
+    });
+
+    it('emits empty constructor when all inputs connected or vec3', () => {
+      const schema: GraphSchema = {
+        nodes: [
+          makeNode({ id: 'time1', type: 'tsl:Time', outputs: [{ id: 'time1_out', name: 'Time', type: 'float' }] }),
+          makeNode({
+            id: 'mat1',
+            type: 'tsl:MaterialOutput',
+            inputs: [
+              { id: 'mat1_colorNode', name: 'Color', type: 'color' },
+              { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
+              { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
+              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
+              { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
+              { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
+              { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
+            ],
+            outputs: [],
+          }),
+        ],
+        connections: [
+          { from: 'time1_out', to: 'mat1_colorNode' },
+          { from: 'time1_out', to: 'mat1_roughnessNode' },
+          { from: 'time1_out', to: 'mat1_metalnessNode' },
+          { from: 'time1_out', to: 'mat1_emissiveNode' },
+          { from: 'time1_out', to: 'mat1_emissiveIntensityNode' },
+          { from: 'time1_out', to: 'mat1_opacityNode' },
+        ],
+      };
+      const result = exportTSL(schema);
+      expect(result).toContain('const mat1 = new MeshStandardNodeMaterial();');
     });
   });
 
@@ -986,7 +1186,8 @@ describe('exportTSL', () => {
             { id: 'mat1_colorNode', name: 'Color', type: 'color' },
             { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
             { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
-            { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color' },
+            { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
             { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
             { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
             { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
@@ -1070,7 +1271,8 @@ describe('exportTSL', () => {
               { id: 'mat1_colorNode', name: 'Color', type: 'color' },
               { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
               { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
-              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color' },
+              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
               { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
               { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
               { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
@@ -1091,7 +1293,7 @@ describe('exportTSL', () => {
       expect(result).toContain('MeshStandardNodeMaterial');
       expect(result).toContain('const uv1 = uv();');
       expect(result).toContain('const tex1 = texture(myTexture, uv1);');
-      expect(result).toContain('const mat1 = new MeshStandardNodeMaterial();');
+      expect(result).toContain('const mat1 = new MeshStandardNodeMaterial({');
       expect(result).toContain('mat1.colorNode = tex1.rgb;');
     });
 
@@ -1121,7 +1323,8 @@ describe('exportTSL', () => {
               { id: 'mat1_colorNode', name: 'Color', type: 'color' },
               { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
               { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
-              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color' },
+              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
               { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
               { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
               { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },

@@ -1,6 +1,7 @@
 
 import { TYPE_COLORS } from './constants';
 import { DataType, GraphSchema, NodeData, NodePort, NodeProperty } from './types';
+import { TSL_NODE_BY_TYPE } from './handlers';
 
 export interface GradientStop { pos: number; color: number[] }
 
@@ -146,12 +147,18 @@ export const applyConnectionState = (schema: GraphSchema): GraphSchema => {
   const connectedInputs = new Set(schema.connections.map(connection => connection.to));
 
   const nodes = schema.nodes.map((node) => {
+    const def = TSL_NODE_BY_TYPE.get(node.type);
     const normalizedNode: NodeData = {
       ...node,
-      inputs: node.inputs?.map((input) => ({
-        ...input,
-        connected: connectedInputs.has(input.id),
-      })),
+      inputs: node.inputs?.map((input, i) => {
+        const portDef = def?.inputs[i];
+        return {
+          ...input,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          value: input.value ?? portDef?.defaultValue,
+          connected: connectedInputs.has(input.id),
+        };
+      }),
     };
 
     return {

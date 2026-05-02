@@ -20,6 +20,8 @@ function formatDefaultValue(type: string, value: TSLValue): string {
       if (Array.isArray(value) && value.length >= 4)
         return `vec4(${value[0].toFixed(4)}, ${value[1].toFixed(4)}, ${value[2].toFixed(4)}, ${value[3].toFixed(4)})`;
       return 'vec4(0, 0, 0, 1)';
+    case 'int':
+      return typeof value === 'number' ? String(Math.round(value)) : '0';
     case 'color':
       if (Array.isArray(value) && value.length >= 3)
         return `color(${value[0].toFixed(4)}, ${value[1].toFixed(4)}, ${value[2].toFixed(4)})`;
@@ -118,23 +120,51 @@ export function exportTSL(schema: GraphSchema): string {
     }
   }
 
+  const CONSTRUCTOR_TYPES = new Set(['float', 'color', 'int']);
+
   for (const matNode of materialNodes) {
     const def = TSL_NODE_BY_TYPE.get(matNode.type);
     if (!def) continue;
     const matVarName = sanitizeId(matNode.id);
-    lines.push('');
-    lines.push(`const ${matVarName} = new ${def.tslFn}();`);
 
+    const constructorParts: string[] = [];
     const inputs = matNode.inputs ?? [];
+
+    // Pass 1: collect constructor params for unconnected float/color/int
+    for (let i = 0; i < inputs.length; i++) {
+      const inputPort = inputs[i];
+      const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
+      const portType = inputPort.type;
+      const conn = connections.find(c => c.to === inputPort.id);
+      if (conn || !CONSTRUCTOR_TYPES.has(portType)) continue;
+
+      const legacyName = catalogPortId.replace(/Node$/, '');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const defaultVal = inputPort.value ?? def.inputs[i]?.defaultValue ?? null;
+
+      if (portType === 'color') {
+        const v = Array.isArray(defaultVal) ? defaultVal : [1, 1, 1];
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        constructorParts.push(`${legacyName}: new THREE.Color(${(v[0] ?? 1).toFixed(4)}, ${(v[1] ?? 1).toFixed(4)}, ${(v[2] ?? 1).toFixed(4)})`);
+      } else {
+        const numVal = typeof defaultVal === 'number' ? defaultVal : 0;
+        constructorParts.push(`${legacyName}: ${portType === 'int' ? String(Math.round(numVal)) : numVal.toFixed(4)}`);
+      }
+    }
+
+    const constructorArg = constructorParts.length > 0 ? `{ ${constructorParts.join(', ')} }` : '';
+    lines.push('');
+    lines.push(`const ${matVarName} = new ${def.tslFn}(${constructorArg});`);
+
+    // Pass 2: set *Node props for connected inputs
     for (let i = 0; i < inputs.length; i++) {
       const inputPort = inputs[i];
       const catalogPortId = def.inputs[i]?.id ?? inputPort.id;
       const conn = connections.find(c => c.to === inputPort.id);
-      if (conn) {
-        const sourceExpr = outputVarMap.get(conn.from);
-        if (sourceExpr) {
-          lines.push(`${matVarName}.${catalogPortId} = ${sourceExpr};`);
-        }
+      if (!conn) continue;
+      const sourceExpr = outputVarMap.get(conn.from);
+      if (sourceExpr) {
+        lines.push(`${matVarName}.${catalogPortId} = ${sourceExpr};`);
       }
     }
   }
