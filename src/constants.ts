@@ -2,6 +2,7 @@
 // Three.js TSL type colors (inspired by GLSL / Three.js node editor palette)
 export const TYPE_COLORS: Record<string, string> = {
   float:   '#A1A1A1', // Grey
+  texture: '#2FA7A0', // Teal
   vec2:    '#63C7C7', // Cyan
   vec3:    '#6363C7', // Purple/Blue
   vec4:    '#9263C7', // Violet

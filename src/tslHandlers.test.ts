@@ -74,6 +74,7 @@ describe('TSL_NODE_CATALOG', () => {
     expect(types.has('tsl:SplitXYZ')).toBe(true);
     expect(types.has('tsl:CombineXYZ')).toBe(true);
     expect(types.has('tsl:TextureSample')).toBe(true);
+    expect(types.has('tsl:BumpMap')).toBe(true);
     expect(types.has('tsl:UniformFloat')).toBe(true);
     expect(types.has('tsl:UniformVec3')).toBe(true);
     expect(types.has('tsl:UniformColor')).toBe(true);

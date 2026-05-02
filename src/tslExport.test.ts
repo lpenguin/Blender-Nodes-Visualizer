@@ -556,6 +556,56 @@ describe('exportTSL', () => {
       const result = exportTSL(schema);
       expect(result).toContain('const mul1 = mul(tex1.a, 0);');
     });
+
+    it('generates BumpMap from a height input and assigns it to material normalNode', () => {
+      const schema: GraphSchema = {
+        nodes: [
+          makeNode({
+            id: 'tex1',
+            type: 'tsl:TextureSample',
+            inputs: [{ id: 'tex1_uv', name: 'UV', type: 'vec2' }],
+            outputs: [
+              { id: 'tex1_rgba', name: 'RGBA', type: 'vec4' },
+              { id: 'tex1_rgb', name: 'RGB', type: 'color' },
+              { id: 'tex1_a', name: 'Alpha', type: 'float' },
+            ],
+          }),
+          makeNode({
+            id: 'bump1',
+            type: 'tsl:BumpMap',
+            inputs: [
+              { id: 'bump1_textureNode', name: 'Height', type: 'texture' },
+              { id: 'bump1_scaleNode', name: 'Scale', type: 'float', value: 2.0 },
+            ],
+            outputs: [{ id: 'bump1_out', name: 'Normal', type: 'vec3' }],
+          }),
+          makeNode({
+            id: 'mat1',
+            type: 'tsl:MaterialOutput',
+            inputs: [
+              { id: 'mat1_colorNode', name: 'Color', type: 'color' },
+              { id: 'mat1_roughnessNode', name: 'Roughness', type: 'float' },
+              { id: 'mat1_metalnessNode', name: 'Metalness', type: 'float' },
+              { id: 'mat1_emissiveNode', name: 'Emissive', type: 'color', value: [1, 1, 1] },
+              { id: 'mat1_emissiveIntensityNode', name: 'Emissive Strength', type: 'float', value: 0 },
+              { id: 'mat1_normalNode', name: 'Normal', type: 'vec3' },
+              { id: 'mat1_opacityNode', name: 'Opacity', type: 'float' },
+              { id: 'mat1_positionNode', name: 'Position', type: 'vec3' },
+            ],
+            outputs: [],
+          }),
+        ],
+        connections: [
+          { from: 'tex1_a', to: 'bump1_textureNode' },
+          { from: 'bump1_out', to: 'mat1_normalNode' },
+        ],
+      };
+      const result = exportTSL(schema);
+      expect(result).toContain("import { bumpMap, texture } from 'three/tsl';");
+      expect(result).toContain('const tex1 = texture(myTexture, 0);');
+      expect(result).toContain('const bump1 = bumpMap(tex1.a, 2.0000);');
+      expect(result).toContain('mat1.normalNode = bump1;');
+    });
   });
 
   describe('Uniform nodes', () => {

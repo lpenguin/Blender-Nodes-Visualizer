@@ -18,6 +18,7 @@ import { NodeData, GraphSchema } from './types';
 describe('getPortColor', () => {
   it('returns correct color for known type', () => {
     expect(getPortColor('float')).toBe('#A1A1A1');
+    expect(getPortColor('texture')).toBe('#2FA7A0');
     expect(getPortColor('color')).toBe('#C7C729');
     expect(getPortColor('vec2')).toBe('#63C7C7');
     expect(getPortColor('boolean')).toBe('#63C763');

@@ -780,7 +780,7 @@ export const NodeWidget: React.FC<NodeWidgetProps> = ({ data, onInputValueChange
     } else if (['FloatNode', 'Vec2Node', 'Vec3Node', 'Vec4Node', 'ColorNode', 'BooleanNode',
                  'UniformFloat', 'UniformVec3', 'UniformColor'].includes(tslType)) {
       headerClass = "bg-sky-900/70";
-    } else if (['TextureSample'].includes(tslType)) {
+        } else if (['TextureSample', 'BumpMap'].includes(tslType)) {
       headerClass = "bg-teal-900/70";
     } else if (['MixColor', 'Hue', 'Saturation', 'Luminance'].includes(tslType)) {
       headerClass = "bg-yellow-900/60";

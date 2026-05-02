@@ -545,6 +545,20 @@ export const GENERIC_TSL_DEFS: TSLNodeDef[] = [
     ],
   },
   {
+    type: 'tsl:BumpMap',
+    name: 'Bump Map',
+    category: 'Texture',
+    description: 'Convert a height input into a normal-compatible bump mapping node.',
+    tslFn: 'bumpMap',
+    inputs: [
+      { id: 'textureNode', name: 'Height', type: 'texture' },
+      { id: 'scaleNode', name: 'Scale', type: 'float', defaultValue: 1.0, range: { min: 0, max: 10, step: 0.01, fineStep: 0.001 } },
+    ],
+    outputs: [
+      { id: 'out', name: 'Normal', type: 'vec3' },
+    ],
+  },
+  {
     type: 'tsl:OneMinus',
     name: 'One Minus',
     category: 'Utility',

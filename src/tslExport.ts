@@ -66,7 +66,7 @@ const GENERIC_TSL_FNS = new Set([
   'fract', 'floor', 'ceil', 'round', 'mod', 'sign', 'log', 'exp',
   'dot', 'cross', 'normalize', 'length', 'distance', 'reflect', 'refract',
   'oneMinus', 'negate', 'reciprocal',
-  'hue', 'saturation', 'luminance',
+  'hue', 'saturation', 'luminance', 'bumpMap',
   'mx_cell_noise_float',
   'mx_worley_noise_float', 'mx_worley_noise_vec2', 'mx_worley_noise_vec3',
   'mx_fractal_noise_float', 'mx_fractal_noise_vec2', 'mx_fractal_noise_vec3', 'mx_fractal_noise_vec4',
