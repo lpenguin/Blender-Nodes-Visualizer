@@ -1,20 +1,60 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { GraphCanvas } from './components/NodeGraph/GraphCanvas';
 import { Toolbar } from './components/UI/Toolbar';
 import { ToastProvider } from './components/UI/Toast';
 import { NodePicker } from './components/UI/NodePicker';
 import { TSLCodePanel } from './components/UI/TSLCodePanel';
 import { ShaderPreview } from './components/UI/ShaderPreview';
+import { MaterialLoadDialog } from './components/UI/MaterialLoadDialog';
 import { applyConnectionState, parseGraphJSON } from './utils';
 import { exportTSL } from './tslExport';
 import { DEFAULT_JSON_EXAMPLE } from './constants';
-import { GraphSchema, NodeData, ConnectionData } from './types';
+import { GraphSchema, NodeData, ConnectionData, SavedMaterial } from './types';
 import { TSLNodeDef } from './tslNodes';
+
+const MATERIAL_STORAGE_KEY = 'quick-sailor.saved-materials';
+
+const readSavedMaterials = (): SavedMaterial[] => {
+  try {
+    const raw = window.localStorage.getItem(MATERIAL_STORAGE_KEY);
+    if (raw === null) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is SavedMaterial => {
+      if (typeof item !== 'object' || item === null) return false;
+      const candidate = item as Partial<SavedMaterial>;
+      return typeof candidate.name === 'string'
+        && candidate.schema !== undefined
+        && typeof candidate.updatedAt === 'number';
+    });
+  } catch {
+    return [];
+  }
+};
+
+const writeSavedMaterials = (materials: SavedMaterial[]): void => {
+  window.localStorage.setItem(MATERIAL_STORAGE_KEY, JSON.stringify(materials));
+};
+
+const uniqueMaterialName = (baseName: string, existingNames: Set<string>): string => {
+  if (!existingNames.has(baseName)) return baseName;
+  let counter = 2;
+  let nextName = `${baseName} ${String(counter)}`;
+  while (existingNames.has(nextName)) {
+    counter += 1;
+    nextName = `${baseName} ${String(counter)}`;
+  }
+  return nextName;
+};
 
 function App(): React.ReactElement {
   const initialGraph = useMemo(() => parseGraphJSON(DEFAULT_JSON_EXAMPLE), []);
   const [schema, setSchema] = useState<GraphSchema | null>(initialGraph.schema);
   const [parseError, setParseError] = useState<string | null>(initialGraph.error);
+  const [materialName, setMaterialName] = useState<string>('Untitled Material');
+  const [savedMaterials, setSavedMaterials] = useState<SavedMaterial[]>([]);
+  const [saveToast, setSaveToast] = useState<string | null>(null);
+  const [showLoadDialog, setShowLoadDialog] = useState<boolean>(false);
   const [showNodePicker, setShowNodePicker] = useState<boolean>(false);
   const [nodePickerPosition, setNodePickerPosition] = useState<{ x: number; y: number } | null>(null);
   const [nodePickerWorldPosition, setNodePickerWorldPosition] = useState<{ x: number; y: number } | null>(null);
@@ -25,6 +65,50 @@ function App(): React.ReactElement {
   const [previewShape, setPreviewShape] = useState<'cube' | 'sphere'>('cube');
   const isResizingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const saveToastTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setSavedMaterials(readSavedMaterials());
+  }, []);
+
+  const persistMaterials = useCallback((nextMaterials: SavedMaterial[]): void => {
+    setSavedMaterials(nextMaterials);
+    writeSavedMaterials(nextMaterials);
+  }, []);
+
+  const saveCurrentMaterial = useCallback((name = materialName): void => {
+    if (!schema) return;
+    const trimmedName = name.trim() || 'Untitled Material';
+    const nextMaterial: SavedMaterial = {
+      name: trimmedName,
+      schema,
+      updatedAt: Date.now(),
+    };
+    const nextMaterials = [
+      nextMaterial,
+      ...savedMaterials.filter(material => material.name !== trimmedName),
+    ];
+    persistMaterials(nextMaterials);
+    setMaterialName(trimmedName);
+    setSaveToast(`Saved ${trimmedName}`);
+  }, [materialName, persistMaterials, savedMaterials, schema]);
+
+  const loadSavedMaterial = useCallback((name: string): void => {
+    const material = savedMaterials.find(item => item.name === name);
+    if (!material) return;
+    setSchema(material.schema);
+    setMaterialName(material.name);
+    setParseError(null);
+    setShowTSLCode(false);
+  }, [savedMaterials]);
+
+  const duplicateCurrentMaterial = useCallback((): void => {
+    if (!schema) return;
+    const existingNames = new Set(savedMaterials.map(material => material.name).concat(materialName));
+    const nextName = uniqueMaterialName(`${materialName || 'Untitled Material'} Copy`, existingNames);
+    setMaterialName(nextName);
+    saveCurrentMaterial(nextName);
+  }, [materialName, savedMaterials, saveCurrentMaterial, schema]);
 
   const handleResizeStart = (e: React.PointerEvent): void => {
     isResizingRef.current = true;
@@ -76,6 +160,7 @@ function App(): React.ReactElement {
       setSchema(parsedSchema);
       setParseError(null);
       setShowTSLCode(false);
+      setMaterialName(file.name.replace(/\.json$/i, '') || 'Imported Material');
       return;
     }
 
@@ -200,6 +285,44 @@ function App(): React.ReactElement {
     setSchema(updated);
   }, [schema]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        saveCurrentMaterial();
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'o') {
+        event.preventDefault();
+        setShowLoadDialog(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [saveCurrentMaterial]);
+
+  useEffect(() => {
+    if (!saveToast) return;
+
+    if (saveToastTimeoutRef.current !== null) {
+      window.clearTimeout(saveToastTimeoutRef.current);
+    }
+
+    saveToastTimeoutRef.current = window.setTimeout(() => {
+      setSaveToast(null);
+      saveToastTimeoutRef.current = null;
+    }, 1800);
+
+    return () => {
+      if (saveToastTimeoutRef.current !== null) {
+        window.clearTimeout(saveToastTimeoutRef.current);
+      }
+    };
+  }, [saveToast]);
+
   return (
     <ToastProvider>
       <div
@@ -214,6 +337,11 @@ function App(): React.ReactElement {
           onChange={(event) => { void handleFileImport(event); }}
         />
         <Toolbar
+          materialName={materialName}
+          onMaterialNameChange={setMaterialName}
+          onSaveMaterial={() => { saveCurrentMaterial(); }}
+          onLoadMaterial={() => { setShowLoadDialog(true); }}
+          onDuplicateMaterial={duplicateCurrentMaterial}
           onImportJson={handleImportJson}
           onExportJson={handleExportJson}
           canExportJson={schema !== null}
@@ -230,6 +358,13 @@ function App(): React.ReactElement {
           showTSLCode={showTSLCode}
           onTogglePreview={() => { setShowPreview(!showPreview); }}
           showPreview={showPreview}
+        />
+
+        <MaterialLoadDialog
+          isOpen={showLoadDialog}
+          materials={savedMaterials}
+          onClose={() => { setShowLoadDialog(false); }}
+          onLoad={loadSavedMaterial}
         />
 
         <div className="flex-1 flex min-h-0">
@@ -271,6 +406,12 @@ function App(): React.ReactElement {
             {parseError && (
               <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-red-900/90 text-red-100 px-4 py-2 rounded-lg shadow-lg text-sm border border-red-700 z-50 max-w-[90vw]">
                 Error: {parseError}
+              </div>
+            )}
+
+            {saveToast && (
+              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-neutral-800/95 text-neutral-100 px-3 py-2 rounded-lg shadow-lg text-xs border border-neutral-700 z-50 max-w-[90vw]">
+                {saveToast}
               </div>
             )}
           </div>

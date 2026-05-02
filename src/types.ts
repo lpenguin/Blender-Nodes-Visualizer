@@ -50,6 +50,12 @@ export interface GraphSchema {
   connections: ConnectionData[];
 }
 
+export interface SavedMaterial {
+  name: string;
+  schema: GraphSchema;
+  updatedAt: number;
+}
+
 export interface ViewportState {
   x: number;
   y: number;
