@@ -18,6 +18,8 @@ function App(): React.ReactElement {
   const [parseError, setParseError] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState<boolean>(false);
   const [showNodePicker, setShowNodePicker] = useState<boolean>(false);
+  const [nodePickerPosition, setNodePickerPosition] = useState<{ x: number; y: number } | null>(null);
+  const [nodePickerWorldPosition, setNodePickerWorldPosition] = useState<{ x: number; y: number } | null>(null);
   const [showTSLCode, setShowTSLCode] = useState<boolean>(false);
   const [tslCode, setTslCode] = useState<string>('');
   const [showPreview, setShowPreview] = useState<boolean>(window.innerWidth > 768);
@@ -85,12 +87,12 @@ function App(): React.ReactElement {
   };
 
   // Add a node from the picker onto the canvas
-  const handleAddNode = useCallback((def: TSLNodeDef) => {
+  const handleAddNode = useCallback((def: TSLNodeDef, position?: { x: number; y: number }) => {
     const newSchema = schema ?? { nodes: [], connections: [] };
 
     // Place the new node near the center of the viewport with slight offset
     const existingCount = newSchema.nodes.length;
-    const position = { x: 100 + (existingCount % 5) * 230, y: 80 + Math.floor(existingCount / 5) * 180 };
+    const nextPosition = position ?? { x: 100 + (existingCount % 5) * 230, y: 80 + Math.floor(existingCount / 5) * 180 };
 
     // Build a unique id — check for actual collisions
     const baseId = def.type.replace('tsl:', '').toLowerCase();
@@ -105,7 +107,7 @@ function App(): React.ReactElement {
       id,
       name: def.name,
       type: def.type,
-      position,
+      position: nextPosition,
       inputs: def.inputs.map(p => ({
         id: `${id}_${p.id}`,
         name: p.name,
@@ -127,6 +129,28 @@ function App(): React.ReactElement {
     setSchema(updated);
     setJsonInput(JSON.stringify(updated, null, 2));
   }, [schema]);
+
+  const handleOpenNodePicker = useCallback((screenPos?: { x: number; y: number }) => {
+    setNodePickerPosition(screenPos ?? null);
+    setNodePickerWorldPosition(null);
+    setShowNodePicker(true);
+  }, []);
+
+  const handleCloseNodePicker = useCallback(() => {
+    setShowNodePicker(false);
+    setNodePickerPosition(null);
+    setNodePickerWorldPosition(null);
+  }, []);
+
+  const handleCanvasContextMenu = useCallback((screenPos: { x: number; y: number }, worldPos: { x: number; y: number }) => {
+    setNodePickerPosition(screenPos);
+    setNodePickerWorldPosition(worldPos);
+    setShowNodePicker(true);
+  }, []);
+
+  const handleAddNodeFromPicker = useCallback((def: TSLNodeDef) => {
+    handleAddNode(def, nodePickerWorldPosition ?? undefined);
+  }, [handleAddNode, nodePickerWorldPosition]);
 
   // Generate TSL code and open the panel
   const handleToggleTSLCode = (): void => {
@@ -170,12 +194,21 @@ function App(): React.ReactElement {
 
   return (
     <ToastProvider>
-      <div className="w-screen h-screen flex flex-col bg-neutral-900 overflow-hidden text-neutral-200 font-sans">
+      <div
+        className="w-screen h-screen flex flex-col bg-neutral-900 overflow-hidden text-neutral-200 font-sans"
+        onContextMenu={(e) => { e.preventDefault(); }}
+      >
         <Toolbar
           onToggleEditor={() => { setShowEditor(!showEditor); }}
           showEditor={showEditor}
           hasError={!!parseError}
-          onToggleNodePicker={() => { setShowNodePicker(!showNodePicker); }}
+          onToggleNodePicker={() => {
+            if (showNodePicker) {
+              handleCloseNodePicker();
+            } else {
+              handleOpenNodePicker();
+            }
+          }}
           showNodePicker={showNodePicker}
           onToggleTSLCode={handleToggleTSLCode}
           showTSLCode={showTSLCode}
@@ -194,6 +227,7 @@ function App(): React.ReactElement {
                     onConnectionsChange={handleConnectionsChange}
                     onInteractionEnd={handleInteractionEnd}
                     onDeleteNodes={handleDeleteNodes}
+                    onContextMenu={handleCanvasContextMenu}
                   />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-neutral-600 flex-col gap-4">
@@ -205,8 +239,9 @@ function App(): React.ReactElement {
             {/* Node Picker Overlay */}
             <NodePicker
               isOpen={showNodePicker}
-              onClose={() => { setShowNodePicker(false); }}
-              onAddNode={handleAddNode}
+              onClose={handleCloseNodePicker}
+              onAddNode={handleAddNodeFromPicker}
+              initialScreenPosition={nodePickerPosition}
             />
 
             {/* TSL Code Panel Overlay */}

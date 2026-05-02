@@ -312,6 +312,36 @@ describe('GraphCanvas', () => {
     });
   });
 
+  describe('context menu', () => {
+    it('calls onContextMenu on right click without panning', () => {
+      const onContextMenu = vi.fn();
+      const { container } = render(
+        wrap(<GraphCanvas schema={makeSchema()} onContextMenu={onContextMenu} />)
+      );
+
+      const canvas = container.firstChild as HTMLElement;
+      fireEvent.pointerDown(canvas, { clientX: 250, clientY: 200, pointerId: 1, button: 2, pointerType: 'mouse' });
+      fireEvent.pointerUp(canvas, { clientX: 250, clientY: 200, pointerId: 1, button: 2, pointerType: 'mouse' });
+
+      expect(onContextMenu).toHaveBeenCalledTimes(1);
+      expect(onContextMenu).toHaveBeenCalledWith({ x: 250, y: 200 }, { x: 250, y: 200 });
+    });
+
+    it('does not call onContextMenu after a right-click pan gesture', () => {
+      const onContextMenu = vi.fn();
+      const { container } = render(
+        wrap(<GraphCanvas schema={makeSchema()} onContextMenu={onContextMenu} />)
+      );
+
+      const canvas = container.firstChild as HTMLElement;
+      fireEvent.pointerDown(canvas, { clientX: 250, clientY: 200, pointerId: 1, button: 2, pointerType: 'mouse' });
+      fireEvent.pointerMove(canvas, { clientX: 270, clientY: 220, pointerId: 1, button: 2, pointerType: 'mouse' });
+      fireEvent.pointerUp(canvas, { clientX: 270, clientY: 220, pointerId: 1, button: 2, pointerType: 'mouse' });
+
+      expect(onContextMenu).not.toHaveBeenCalled();
+    });
+  });
+
   describe('node deletion', () => {
     it('shows delete hint when nodes are selected', () => {
       const { container } = render(wrap(<GraphCanvas schema={makeSchema()} />));
