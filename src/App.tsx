@@ -4,7 +4,6 @@ import { Toolbar } from './components/UI/Toolbar';
 import { JsonEditor } from './components/UI/JsonEditor';
 import { ToastProvider } from './components/UI/Toast';
 import { NodePicker } from './components/UI/NodePicker';
-import { NodePickerPopup } from './components/UI/NodePickerPopup';
 import { TSLCodePanel } from './components/UI/TSLCodePanel';
 import { ShaderPreview } from './components/UI/ShaderPreview';
 import { applyConnectionState, parseGraphJSON } from './utils';
@@ -23,7 +22,6 @@ function App(): React.ReactElement {
   const [tslCode, setTslCode] = useState<string>('');
   const [showPreview, setShowPreview] = useState<boolean>(window.innerWidth > 768);
   const [previewWidth, setPreviewWidth] = useState<number>(300);
-  const [contextMenuPos, setContextMenuPos] = useState<{ screen: { x: number; y: number }; world: { x: number; y: number } } | null>(null);
   const isResizingRef = useRef(false);
 
   const handleResizeStart = (e: React.PointerEvent): void => {
@@ -86,11 +84,12 @@ function App(): React.ReactElement {
   };
 
   // Add a node from the picker onto the canvas
-  const handleAddNode = useCallback((def: TSLNodeDef, position?: { x: number; y: number }) => {
+  const handleAddNode = useCallback((def: TSLNodeDef) => {
     const newSchema = schema ?? { nodes: [], connections: [] };
 
+    // Place the new node near the center of the viewport with slight offset
     const existingCount = newSchema.nodes.length;
-    const pos = position ?? { x: 100 + (existingCount % 5) * 230, y: 80 + Math.floor(existingCount / 5) * 180 };
+    const position = { x: 100 + (existingCount % 5) * 230, y: 80 + Math.floor(existingCount / 5) * 180 };
 
     // Build a unique id — check for actual collisions
     const baseId = def.type.replace('tsl:', '').toLowerCase();
@@ -105,7 +104,7 @@ function App(): React.ReactElement {
       id,
       name: def.name,
       type: def.type,
-      position: pos,
+      position,
       inputs: def.inputs.map(p => ({
         id: `${id}_${p.id}`,
         name: p.name,
@@ -168,20 +167,6 @@ function App(): React.ReactElement {
     setJsonInput(JSON.stringify(updated, null, 2));
   }, [schema]);
 
-  const handleContextMenu = useCallback((screenPos: { x: number; y: number }, worldPos: { x: number; y: number }) => {
-    setContextMenuPos({ screen: screenPos, world: worldPos });
-  }, []);
-
-  const handleAddNodeFromPopup = useCallback((def: TSLNodeDef) => {
-    if (contextMenuPos) {
-      handleAddNode(def, { x: contextMenuPos.world.x, y: contextMenuPos.world.y });
-    }
-  }, [contextMenuPos, handleAddNode]);
-
-  const handleCloseContextMenu = useCallback(() => {
-    setContextMenuPos(null);
-  }, []);
-
   return (
     <ToastProvider>
       <div className="w-screen h-screen flex flex-col bg-neutral-900 overflow-hidden text-neutral-200 font-sans">
@@ -208,7 +193,6 @@ function App(): React.ReactElement {
                     onConnectionsChange={handleConnectionsChange}
                     onInteractionEnd={handleInteractionEnd}
                     onDeleteNodes={handleDeleteNodes}
-                    onContextMenu={handleContextMenu}
                   />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-neutral-600 flex-col gap-4">
@@ -223,21 +207,6 @@ function App(): React.ReactElement {
               onClose={() => { setShowNodePicker(false); }}
               onAddNode={handleAddNode}
             />
-
-            {/* Context Menu Node Picker Popup */}
-            {contextMenuPos && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onPointerDown={handleCloseContextMenu}
-                />
-                <NodePickerPopup
-                  screenPos={contextMenuPos.screen}
-                  onClose={handleCloseContextMenu}
-                  onAddNode={handleAddNodeFromPopup}
-                />
-              </>
-            )}
 
             {/* TSL Code Panel Overlay */}
             <TSLCodePanel

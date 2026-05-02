@@ -12,7 +12,6 @@ interface GraphCanvasProps {
   onConnectionsChange?: (connections: ConnectionData[]) => void;
   onInteractionEnd?: (schema?: GraphSchema) => void;
   onDeleteNodes?: (nodeIds: string[]) => void;
-  onContextMenu?: (screenPos: { x: number; y: number }, worldPos: { x: number; y: number }) => void;
 }
 
 type InteractionMode = 'IDLE' | 'PANNING' | 'DRAGGING_NODES' | 'BOX_SELECTING' | 'RESIZING_NODE' | 'PINCH_ZOOM' | 'DRAGGING_CONNECTION';
@@ -58,7 +57,7 @@ interface PinchState {
     startViewportPos: { x: number; y: number };
 }
 
-export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange, onConnectionsChange, onInteractionEnd, onDeleteNodes, onContextMenu }) => {
+export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange, onConnectionsChange, onInteractionEnd, onDeleteNodes }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState<ViewportState>({ x: 0, y: 0, scale: 1 });
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
@@ -72,8 +71,6 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
   const resizingStateRef = useRef<ResizingState | null>(null);
   const dragOffsetsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const pinchRef = useRef<PinchState | null>(null);
-  const rightClickStartRef = useRef<{ x: number; y: number } | null>(null);
-  const rightClickMovedRef = useRef(false);
 
   // Refs for data access in callbacks
   const viewportRef = useRef<ViewportState>(viewport);
@@ -304,10 +301,6 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
         // Right/Middle Click -> Mouse Pan
         if (e.pointerType === 'mouse' && (e.button === 1 || e.button === 2)) {
             e.preventDefault();
-            if (e.button === 2) {
-                rightClickStartRef.current = { x: e.clientX, y: e.clientY };
-                rightClickMovedRef.current = false;
-            }
             setMode('PANNING');
             lastMousePosRef.current = { x: e.clientX, y: e.clientY };
             return;
@@ -481,12 +474,10 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
 
     // --- PANNING ---
     if (mode === 'PANNING') {
-      if (rightClickStartRef.current && !rightClickMovedRef.current) {
-          const dist = Math.hypot(e.clientX - rightClickStartRef.current.x, e.clientY - rightClickStartRef.current.y);
-          if (dist > 5) {
-              rightClickMovedRef.current = true;
-          }
-      }
+      // Find the active pointer (should be just one if we are here, or use event)
+      // Since handlePointerMove fires for the moving pointer, e.clientX is correct.
+      // But if we switched from Pinch to Pan, we need to be careful.
+      // We rely on lastMousePosRef which we update at the end of this block.
       
       const dx = e.clientX - lastMousePosRef.current.x;
       const dy = e.clientY - lastMousePosRef.current.y;
@@ -628,18 +619,6 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({ schema, onNodesChange,
              }
         }
     } else if (activePointersRef.current.size === 0) {
-        if (mode === 'PANNING' && rightClickStartRef.current && !rightClickMovedRef.current) {
-            const screenPos = { x: rightClickStartRef.current.x, y: rightClickStartRef.current.y };
-            const worldPos = screenToWorld(screenPos.x, screenPos.y);
-            if (onContextMenu) {
-                onContextMenu(screenPos, worldPos);
-            }
-            rightClickStartRef.current = null;
-            rightClickMovedRef.current = false;
-            setMode('IDLE');
-            return;
-        }
-        
         if (mode !== 'IDLE') {
             // Trigger save if we were modifying nodes
              if ((mode === 'DRAGGING_NODES' || mode === 'RESIZING_NODE') && onInteractionEnd) {

@@ -42,11 +42,11 @@ export const TextureSamplePlugin: TSLNodePlugin = {
   build(ctx: NodeBuildContext): void {
     const uvIdx = ctx.def.inputs.findIndex(d => d.id === 'uv');
     const uvPort = uvIdx >= 0 ? ctx.node.inputs?.[uvIdx] : undefined;
-     
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const uvValue = uvPort !== undefined
       ? ctx.getInputValue(uvPort.id, 'vec2', null)
       : uvFn();
-     
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const texResult = texture(getPlaceholderTexture(), uvValue);
     const outPorts = ctx.node.outputs ?? [];
     if (outPorts.length > 0) ctx.outputVarMap.set(outPorts[0].id, texResult);
